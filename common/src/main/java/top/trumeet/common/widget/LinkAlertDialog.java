@@ -6,7 +6,7 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 
-import top.trumeet.common.R;
+import androidx.appcompat.R;
 
 /**
  * Created by Trumeet on 2017/12/30.

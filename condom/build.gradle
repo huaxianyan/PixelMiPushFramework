@@ -12,6 +12,10 @@ android {
 
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     lintOptions {
         // Disable 'NewApi' checking due to false errors in old version of lint tool, until sdk-tool-25.4 is deployed on Travis-CI.
         disable 'NewApi'
@@ -38,17 +42,9 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
 
-android.libraryVariants.all { variant ->
-    String taskName = String.format("remove%sStubClasses", variant.name.capitalize())
-    task "${taskName}" {
-        doLast { delete "${buildDir}/intermediates/classes/${variant.name}" + "/android" }
-    }
-    variant.getProcessJavaResourcesProvider().get().dependsOn(taskName)
-}
-
 task sourcesJar(type: Jar) {
     from android.sourceSets.main.java.srcDirs
-    classifier = 'sources'
+    archiveClassifier.set('sources')
 }
 
 artifacts {

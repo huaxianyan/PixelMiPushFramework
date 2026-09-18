@@ -117,10 +117,10 @@ public class MiPushFrameworkApp extends Application {
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
                 removeDozeActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_WARN)
-                .setContentInfo(getString(R.string.wizard_title_doze_whitelist))
-                .setContentTitle(getString(R.string.wizard_title_doze_whitelist))
-                .setContentText(getString(R.string.wizard_descr_doze_whitelist))
-                .setTicker(getString(R.string.wizard_descr_doze_whitelist))
+                .setContentInfo(getString(top.trumeet.common.R.string.wizard_title_doze_whitelist))
+                .setContentTitle(getString(top.trumeet.common.R.string.wizard_title_doze_whitelist))
+                .setContentText(getString(top.trumeet.common.R.string.wizard_descr_doze_whitelist))
+                .setTicker(getString(top.trumeet.common.R.string.wizard_descr_doze_whitelist))
                 .setSmallIcon(R.drawable.ic_notifications_black_24dp)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setContentIntent(pendingIntent)
@@ -134,7 +134,7 @@ public class MiPushFrameworkApp extends Application {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannelCompat.Builder channel = new NotificationChannelCompat
                     .Builder(CHANNEL_WARN, NotificationManager.IMPORTANCE_HIGH)
-                    .setName(getString(R.string.wizard_title_doze_whitelist));
+                    .setName(getString(top.trumeet.common.R.string.wizard_title_doze_whitelist));
 
             NotificationChannelGroupCompat notificationChannelGroup =
                     new NotificationChannelGroupCompat.Builder(CHANNEL_WARN).setName(CHANNEL_WARN).build();

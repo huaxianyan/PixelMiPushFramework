@@ -1,7 +1,11 @@
+import buildlogic.StripAndroidStubs
+import com.android.build.api.artifact.ScopedArtifact
+import com.android.build.api.variant.ScopedArtifacts
+
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = '1.8.0'
+    ext.kotlin_version = '2.1.20'
 
     repositories {
         maven { url = uri("https://maven.aliyun.com/repository/central") }
@@ -15,10 +19,10 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.2'
-        classpath 'org.greenrobot:greendao-gradle-plugin:3.3.0'
+        classpath 'com.android.tools.build:gradle:8.9.1'
+        classpath 'org.greenrobot:greendao-gradle-plugin:3.3.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'io.github.wurensen:gradle-android-plugin-aspectjx:3.3.2'
+        classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlin_version"
     }
 
 }
@@ -36,11 +40,18 @@ allprojects {
         google()
     }
 
-    gradle.taskGraph.whenReady {
-        tasks.each { task ->
-            if (task.name.equals('mockableAndroidJar')) {
-                task.enabled = false
-            }
+}
+
+// Only these libraries contain compile-time android.* sources. Transform their
+// packaged classes without mutating javac outputs or relying on AGP directory names.
+configure([project(':common'), project(':condom')]) { library ->
+    library.pluginManager.withPlugin('com.android.library') {
+        def components = library.extensions.getByName('androidComponents')
+        components.onVariants(components.selector().all()) { variant ->
+            def strip = library.tasks.register("strip${variant.name.capitalize()}AndroidStubs", StripAndroidStubs)
+            variant.artifacts.forScope(ScopedArtifacts.Scope.PROJECT).use(strip).toTransform(
+                    ScopedArtifact.CLASSES.INSTANCE,
+                    { it.inputJars }, { it.inputDirectories }, { it.outputJar })
         }
     }
 }
@@ -101,7 +112,7 @@ private String getVersionNameFromGit() {
 
 ext {
     minSdkVersion = 21
-    compileSdkVersion = 33
+    compileSdkVersion = 36
     targetSdkVersion = 30
     pushVersionCode = 7
 
