@@ -45,13 +45,15 @@ python scripts/verify_hook_artifact.py \
 
 ## APK 验证
 
-生成未签名的 normal Release APK：
+生成 normal Release APK：
 
 ```sh
 ./gradlew :push:assembleNormalRelease -PversionName=build-check
 ```
 
-安装 Android Build Tools 36.0.0 后，检查最终 APK：
+本机恢复过正式密钥时产出已签名 APK（`xmsf-vbuild-check-normal-release.apk`），没有可用密钥时退回未签名产物（`xmsf-vbuild-check-normal-release-unsigned.apk`）。两条路径都保留是有意的：CI 不带密钥，产物必须停在未签名状态。
+
+`scripts/verify_apk_artifact.py` 只接受未签名产物，遇到 JAR 签名或 APK 签名块会直接报错。安装 Android Build Tools 36.0.0 后：
 
 ```sh
 python scripts/verify_apk_artifact.py \
@@ -61,7 +63,14 @@ python scripts/verify_apk_artifact.py \
 
 脚本检查包名和版本码、minSdk／targetSdk、Release 调试标记、ZIP 对齐、未签名状态、全部 DEX 的校验和与重复类、SDK 类完整性、清单组件和关键方法代码。DEX 读取逻辑统一在 `scripts/dex_inventory.py`。
 
-这不是 ART 校验或真实推送测试，也不证明 Java 方法调用都能在设备上完成链接。
+签名产物另行用 apksigner 核对：
+
+```sh
+"$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs \
+  push/build/outputs/apk/normal/release/xmsf-vbuild-check-normal-release.apk
+```
+
+两者都不是 ART 校验或真实推送测试，也不证明 Java 方法调用都能在设备上完成链接。
 
 ## 构建边界
 
@@ -90,22 +99,39 @@ AAR 本身不内嵌全部依赖，不能将单个 AAR 视为独立可运行的 S
 
 保持 AGP 8 的非传递 `R` 类行为。跨模块资源显式引用资源所属模块，不复制资源或关闭新行为来绕过错误。
 
+## 正式签名
+
+`push/build.gradle` 为 release 构建类型读取框架专属密钥，密钥不进入仓库：
+
+| 来源 | 内容 |
+|---|---|
+| 本机 `%USERPROFILE%\.gradle\mipushframework-signing.properties` | `storeFile`／`storePassword`／`keyAlias`／`keyPassword` |
+| CI 环境变量 | `MIPUSH_KEYSTORE_FILE`／`MIPUSH_KEYSTORE_PASSWORD`／`MIPUSH_KEY_ALIAS`／`MIPUSH_KEY_PASSWORD` |
+
+环境变量优先于属性文件。四项缺任意一项时不启用签名，release 停在未签名状态，本地构建和验证工作流都不会因此失败；四个值齐备但文件不存在则直接报错，避免静默改用别的产物。
+
+启用签名时开启 v1、v2、v3 三种方案，覆盖 minSdk 21 到目标系统。
+
+密钥为 PKCS12、RSA 4096、SHA256withRSA，别名 `mipushframework`，主体 `CN=MiPushFramework, OU=Android Signing, O=NeKo7inA`，有效期 36500 天。证书 SHA-256 与恢复步骤见 NAS 备份目录 `\\192.168.7.216\homes\NeKo7inA\dev\Android Signing\MiPushFramework\`。
+
+换签名后无法覆盖安装设备上现有的 `com.xiaomi.xmsf`，卸载会清空事件库与注册状态。这一步需要单独确认，不在本批范围。
+
 ## 已知限制
 
 - `MethodHooker.logCheckServices` 的原切点将 `context` 解析成类型，未命中。本批未修复这个既有日志切点，也未屏蔽告警
 - `com.nihility.XMPushUtils` 属于应用模块，库织入时不可见。没有为了消除告警开启应用层织入
 - Jetifier 为 AspectJ 运行时重命名后，AJC 可能报告无法识别 `aspectjrt.jar`，解析后的类路径实际包含对应版本。保留告警，不以日志无告警作为验收条件
 - 旧 API、Compose 和 SDK XML 版本告警尚未全部处理
-- normal Release 未签名 APK 已完成 D8／打包及静态检查，但未签名产物不用于安装；正式签名、ART、设备运行和真实推送仍未验证
+- normal Release 已完成 D8／打包及静态检查，签名产物已用 apksigner 核对证书与签名方案；ART、设备运行和真实推送仍未验证
 - D8 转换仍出现旧 SDK 缺少 StackMap 表的告警，未屏蔽，也未用 `-noverify` 绕过 APK 构建
 - `targetSdk` 暂留 30，用于隔离构建变化与 Android 系统行为变化
 
 ## CI 与发布
 
-`test_ci.yml` 构建未签名的 normal Release APK 和 hook AAR，检查最终产物，只上传 JSON 报告，不上传 SDK 二进制或 APK，也不创建 Release。GitHub CI 尚未实跑。
+`test_ci.yml` 不带任何签名密钥，构建未签名的 normal Release APK 和 hook AAR，检查最终产物，只上传 JSON 报告，不上传 SDK 二进制或 APK，也不创建 Release。GitHub CI 尚未实跑。
 
-Debug 使用 Android 插件的标准开发签名配置，Release 保持未签名。历史 `.yuuta.jks`、环境变量和 `local.properties` 签名读取逻辑已移除，Release 不再沿用 Debug 密钥。本批未构建 Debug APK，未生成或切换正式密钥。
+`release.yml` 只在推送 `v*` 标签或手动指定标签时运行：解码 `MIPUSH_KEYSTORE_BASE64`，构建 normal 与 vc105 两个签名 APK，用 apksigner 核对证书 SHA-256 与 v2 方案，通过后上传工作流产物并创建 GitHub Release。证书不匹配或产物缺失时直接失败，不发布。
 
-正式签名应在单独确认的步骤中对未签名 APK 进行，使用框架专属密钥，不复用 Pixel MiPush 模块密钥。正式签名和发布流程尚未建立。没有 Git 标签的本地工作树可显式传入 `-PversionName=build-check`，它仅是验证版本标识。
+Debug 使用 Android 插件的标准开发签名配置。历史 `.yuuta.jks`、环境变量和 `local.properties` 签名读取逻辑已移除，Release 不复用 Debug 密钥，也不复用 Pixel MiPush 模块密钥。
 
-公开发布前仍须完成来源与许可核验、独立签名配置和设备验收。
+没有 Git 标签的本地工作树可显式传入 `-PversionName=build-check`，它仅是验证版本标识。公开发布前仍须完成来源与许可核验和设备验收。
