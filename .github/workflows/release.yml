@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build and publish, for example v0.3.12'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  SIGNER_CERT_SHA256: 6c15d79098eea9e0b2d01ec35bd26fff8d0ae255f435fd077ec5fbf1985031f2
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve the release tag
+        id: release_tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ]; then
+            echo "name=$REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=$INPUT_TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out the tag with full history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release_tag.outputs.name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Install Android build tools
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Decode the release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.MIPUSH_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "MIPUSH_KEYSTORE_BASE64 is not configured for this repository." >&2
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/mipushframework-release.p12"
+          echo "decoded keystore: $(stat -c %s "$RUNNER_TEMP/mipushframework-release.p12") bytes"
+
+      - name: Build the signed Release APKs
+        env:
+          MIPUSH_KEYSTORE_FILE: ${{ runner.temp }}/mipushframework-release.p12
+          MIPUSH_KEYSTORE_PASSWORD: ${{ secrets.MIPUSH_KEYSTORE_PASSWORD }}
+          MIPUSH_KEY_ALIAS: ${{ secrets.MIPUSH_KEY_ALIAS }}
+          MIPUSH_KEY_PASSWORD: ${{ secrets.MIPUSH_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew :push:assembleNormalRelease :push:assembleVc105Release --stacktrace
+
+      - name: Verify the signing certificate of every APK
+        run: |
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          apks=$(find push/build/outputs/apk -name '*-release.apk' | sort)
+          if [ -z "$apks" ]; then
+            echo "No signed APK was produced." >&2
+            exit 1
+          fi
+          status=0
+          for apk in $apks; do
+            digest=$("$apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+            echo "$apk -> $digest"
+            if [ "$digest" != "$SIGNER_CERT_SHA256" ]; then
+              echo "Unexpected signing certificate in $apk, refusing to publish." >&2
+              status=1
+            fi
+            if ! "$apksigner" verify --verbose "$apk" | grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true'; then
+              echo "$apk is missing a v2 signature." >&2
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Upload the signed APKs as a workflow artifact
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: signed-release-apks
+          path: push/build/outputs/apk/*/release/*-release.apk
+          if-no-files-found: error
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release_tag.outputs.name }}
+        run: |
+          apks=$(find push/build/outputs/apk -name '*-release.apk' | sort)
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber $apks
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "$TAG" --generate-notes $apks
+          fi
