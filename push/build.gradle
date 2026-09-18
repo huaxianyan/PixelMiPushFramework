@@ -3,6 +3,37 @@ apply plugin: 'kotlin-android'
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 apply plugin: 'org.greenrobot.greendao'
 
+// The release key never enters the repository. Locally it is restored to
+// ~/.gradle/mipushframework-signing.properties by the backup on the NAS,
+// CI provides the same values as environment variables.
+def signingPropertiesFile = new File(gradle.gradleUserHomeDir, 'mipushframework-signing.properties')
+def signingProperties = new Properties()
+if (signingPropertiesFile.isFile()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+
+def signingValue = { String environmentName, String propertyName ->
+    def fromEnvironment = System.getenv(environmentName)
+    if (fromEnvironment != null && !fromEnvironment.trim().isEmpty()) {
+        return fromEnvironment.trim()
+    }
+    return signingProperties.getProperty(propertyName)
+}
+
+def releaseKeystore = null
+def releaseKeystorePassword = signingValue('MIPUSH_KEYSTORE_PASSWORD', 'storePassword')
+def releaseKeyAlias = signingValue('MIPUSH_KEY_ALIAS', 'keyAlias')
+def releaseKeyPassword = signingValue('MIPUSH_KEY_PASSWORD', 'keyPassword')
+def releaseKeystorePath = signingValue('MIPUSH_KEYSTORE_FILE', 'storeFile')
+if (releaseKeystorePath && releaseKeystorePassword && releaseKeyAlias && releaseKeyPassword) {
+    releaseKeystore = new File(releaseKeystorePath)
+    if (!releaseKeystore.isAbsolute()) {
+        releaseKeystore = rootProject.file(releaseKeystorePath)
+    }
+    if (!releaseKeystore.isFile()) {
+        throw new GradleException("Release keystore not found: ${releaseKeystore}")
+    }
+}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -30,12 +61,29 @@ android {
         buildConfigField "String", "GIT_TAG", "\"" + rootProject.ext.gitTag + "\""
     }
 
+    signingConfigs {
+        release {
+            if (releaseKeystore != null) {
+                storeFile releaseKeystore
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+                v1SigningEnabled true
+                v2SigningEnabled true
+                enableV3Signing = true
+            }
+        }
+    }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Release output stays unsigned until a separate, approved signing step.
+            // Signed with the framework key when it is available, unsigned otherwise.
+            if (releaseKeystore != null) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             //shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
