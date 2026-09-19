@@ -9,13 +9,16 @@
 | JDK | 17 |
 | Gradle | 8.11.1，使用仓库 Wrapper |
 | Android Gradle Plugin | 8.9.1 |
-| compileSdk / targetSdk / minSdk | 36 / 30 / 21 |
+| compileSdk / targetSdk / minSdk | 36 / 30 / 23 |
 | Kotlin / Compose 编译插件 | 2.1.20 / 2.1.20 |
 | AspectJ 编译器与运行时 | 1.9.7 |
 | GreenDAO 插件 / 运行时 / schema | 3.3.1 / 3.3.0 / 17 |
 | 小米 SDK | 仓库原有 `miuipushsdkshared_3_7_9.jar` |
+| Compose UI / Material 3 | 1.11.4 / 1.4.0 |
+| navigation-compose / activity-compose | 2.9.8 / 1.13.0 |
+| lifecycle-runtime-ktx | 2.10.0 |
 
-Compose UI 和 Material 3 库暂时保持原版本。此次升级的是编译插件，不捆绑界面依赖升级。
+界面依赖已随本批升级，选版约束与原因见「界面依赖版本」一节。
 
 安装共享 Android SDK 的 Platform 36，设置 `JAVA_HOME` 和 `ANDROID_HOME` 后使用仓库 Wrapper。Windows 使用 `gradlew.bat`。
 
@@ -99,6 +102,23 @@ AAR 本身不内嵌全部依赖，不能将单个 AAR 视为独立可运行的 S
 
 保持 AGP 8 的非传递 `R` 类行为。跨模块资源显式引用资源所属模块，不复制资源或关闭新行为来绕过错误。
 
+## 界面依赖版本
+
+`push/build.gradle` 的 Compose、Material 3 与 AndroidX 界面依赖升到当前稳定版，同时 `minSdk` 从 21 提到 23。
+
+选版受两条硬约束，不是取最新即可：
+
+- **compileSdk 上限。** `compose.ui` 1.12.x、`navigation-compose` 2.10.x、`lifecycle` 2.11.x 的 AAR 元数据要求 `compileSdk` 37 与 AGP 9.1.0，超出本工程的 36 与 8.9.1，`checkAarMetadata` 会直接失败。可用最高组合为 Compose UI 1.11.4、Material 3 1.4.0、navigation-compose 2.9.8、lifecycle 2.10.0。
+- **Kotlin 编译器版本。** Compose 1.11.4 依赖的 `kotlin-stdlib` 是 2.1.20，与本工程编译器一致；再往上会引入高于编译器的 stdlib。
+
+`minSdk` 提到 23 由 `ui-tooling-data` 要求，也是 AndroidX 自 2025 年起统一抬高的下限。`ui-tooling` 改为 `debugImplementation`，它只服务 IDE 预览，不进 Release 产物；`ui-tooling-preview` 保持 `implementation`，源码使用 `@Preview` 注解。
+
+`material-icons-core` 固定 1.7.8：material3 不再传递该依赖，而 `Icons.*` 仍被 `SearchBar` 与 `RequestPermissionPage` 使用。该库已停止更新。
+
+`org.jetbrains:markdown` 保持 0.7.3。0.7.4 起改为 KMP 发布，根坐标只含公共元数据，JVM 类在 `markdown-jvm` 下，直接升级会让 `org.intellij.markdown` 无法解析。
+
+Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 Android 12+ 用 `dynamicLightColorScheme`／`dynamicDarkColorScheme`，各页面的 `Main`、`SettingsApp` 内部都有 `Theme {}` 包裹，本批未改动这部分。
+
 ## 正式签名
 
 `push/build.gradle` 为 release 构建类型读取框架专属密钥，密钥不进入仓库：
@@ -110,7 +130,7 @@ AAR 本身不内嵌全部依赖，不能将单个 AAR 视为独立可运行的 S
 
 环境变量优先于属性文件。四项缺任意一项时不启用签名，release 停在未签名状态，本地构建和验证工作流都不会因此失败；四个值齐备但文件不存在则直接报错，避免静默改用别的产物。
 
-启用签名时开启 v1、v2、v3 三种方案，覆盖 minSdk 21 到目标系统。
+启用签名时开启 v1、v2、v3 三种方案，覆盖 minSdk 23 到目标系统。
 
 密钥为 PKCS12、RSA 4096、SHA256withRSA，别名 `mipushframework`，主体 `CN=MiPushFramework, OU=Android Signing, O=NeKo7inA`，有效期 36500 天。证书 SHA-256 与恢复步骤见 NAS 备份目录 `\\192.168.7.216\homes\NeKo7inA\dev\Android Signing\MiPushFramework\`。
 
