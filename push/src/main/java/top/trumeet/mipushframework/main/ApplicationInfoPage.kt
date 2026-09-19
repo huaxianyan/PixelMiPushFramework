@@ -11,25 +11,28 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,26 +40,30 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.nihility.utils.RegistrationHelper
 import com.xiaomi.xmsf.BuildConfig
 import com.xiaomi.xmsf.R
-import top.trumeet.mipushframework.component.SettingsGroup
-import top.trumeet.mipushframework.component.SettingsItem
 import top.trumeet.common.utils.Utils
 import top.trumeet.mipush.provider.db.RegisteredApplicationDb
 import top.trumeet.mipush.provider.entities.RegisteredApplication
 import top.trumeet.mipush.provider.entities.RegisteredApplication.RegisteredType
 import top.trumeet.mipushframework.component.MarkdownView
+import top.trumeet.mipushframework.component.NavigationRow
+import top.trumeet.mipushframework.component.PageColumn
+import top.trumeet.mipushframework.component.SettingsGroup
+import top.trumeet.mipushframework.component.SettingsItem
+import top.trumeet.mipushframework.component.SettingsRow
+import top.trumeet.ui.theme.Layout
 import top.trumeet.ui.theme.Theme
 
 class ApplicationInfoPage : ComponentActivity() {
@@ -74,14 +81,10 @@ class ApplicationInfoPage : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         init(getRegisteredApplication()!!)
         setContent {
-            Theme {
-                window.navigationBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
-                    NavigationBarDefaults.Elevation
-                ).toArgb()
-            }
-            SettingsApp()
+            SettingsApp(onBack = { finish() })
         }
     }
 
@@ -103,8 +106,9 @@ class ApplicationInfoPage : ComponentActivity() {
         return null
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun SettingsApp() {
+    fun SettingsApp(onBack: () -> Unit = {}) {
         if (!::appConfigurationUtils.isInitialized) {
             appConfigurationUtils =
                 AppConfigurationUtils(
@@ -114,24 +118,33 @@ class ApplicationInfoPage : ComponentActivity() {
         }
 
         Theme {
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                SettingsScreen()
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text(stringResource(R.string.application_info_label)) },
+                        navigationIcon = {
+                            IconButton(onClick = onBack) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(R.string.action_back)
+                                )
+                            }
+                        }
+                    )
+                }
+            ) { padding ->
+                PageColumn(contentPadding = padding) {
+                    ApplicationInfoHeader()
+                    Tips()
+                    SettingsGroup(title = stringResource(R.string.recent_activity_title)) {
+                        RecentEvents()
+                    }
+                    SettingsGroup(title = stringResource(R.string.permissions)) {
+                        ShowRegistrationRequestSwitch()
+                    }
+                    NotificationChannels()
+                }
             }
-        }
-    }
-
-
-    @Composable
-    fun SettingsScreen() {
-        Column {
-            ApplicationInfoHeader()
-            Misc()
-            NotificationChannels()
         }
     }
 
@@ -143,49 +156,59 @@ class ApplicationInfoPage : ComponentActivity() {
             AppCompatResources.getDrawable(context, android.R.mipmap.sym_def_app_icon)!!
         else applicationInfo.getIcon(context)
         val icon = drawable.toBitmap().asImageBitmap()
-        Row(
-            modifier = Modifier.padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton({
-                RegistrationHelper(
-                    context,
-                    applicationInfo.packageName
-                ).deleteRegistrationInfoAndRetryForceRegister()
-            }) {
-                Image(icon, "Application Icon")
-            }
-            Column(Modifier.weight(1f)) {
-                Text(
-                    applicationInfo.appName,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    applicationInfo.packageName,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            IconButton({
-                val uri = Uri.fromParts("package", applicationInfo.packageName, null)
-                context.startActivity(
-                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                        .setData(uri)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
-            }) {
-                Image(
-                    painterResource(R.drawable.ic_info),
-                    stringResource(R.string.application_info_label)
-                )
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Layout.CardPadding),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton({
+                    RegistrationHelper(
+                        context,
+                        applicationInfo.packageName
+                    ).deleteRegistrationInfoAndRetryForceRegister()
+                }) {
+                    Image(
+                        icon,
+                        "Application Icon",
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(MaterialTheme.shapes.large)
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        applicationInfo.appName,
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        applicationInfo.packageName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton({
+                    val uri = Uri.fromParts("package", applicationInfo.packageName, null)
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            .setData(uri)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }) {
+                    Icon(
+                        painterResource(R.drawable.ic_info),
+                        stringResource(R.string.application_info_label),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
-    }
-
-    @Composable
-    private fun Misc() {
-        Tips()
-        RecentEvents()
-        ShowRegistrationRequestSwitch()
     }
 
     @Composable
@@ -211,7 +234,7 @@ class ApplicationInfoPage : ComponentActivity() {
 
     @Composable
     private fun RecentEvents() {
-        SettingsItem(
+        NavigationRow(
             title = stringResource(R.string.recent_activity_view)
         ) {
             appConfigurationUtils.gotoRecentEventsPage()
@@ -264,7 +287,7 @@ class ApplicationInfoPage : ComponentActivity() {
 
     @Composable
     private fun NotificationCategory(categoryName: String, channels: List<NotificationChannel>) {
-        SettingsGroup(categoryName) {
+        SettingsGroup(title = categoryName) {
             channels.forEach { channel ->
                 SettingsItem(
                     title = AppConfigurationUtils.getNotificationTitle(
@@ -283,7 +306,7 @@ class ApplicationInfoPage : ComponentActivity() {
 
     @Composable
     private fun ManageNotificationItem() {
-        SettingsItem(
+        NavigationRow(
             title = stringResource(R.string.settings_manage_app_notifications),
             summary = stringResource(R.string.settings_manage_app_notifications_summary),
             enabled = applicationInfo.registeredType == RegisteredType.NotRegistered,
@@ -294,21 +317,36 @@ class ApplicationInfoPage : ComponentActivity() {
 
 }
 
+/**
+ * A callout that stands out from the cards around it, used when something needs attention
+ * before the app can receive pushes.
+ */
 @Composable
 fun Tips(title: String, description: String) {
-    Row(modifier = Modifier.padding(10.dp)) {
-        Icon(
-            painterResource(R.drawable.ic_error_outline_black_24dp), null,
-            tint = Color(0xFFD50000)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
         )
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(title, style = MaterialTheme.typography.bodyMedium)
-
-            MarkdownView(
-                description,
-                textSize = MaterialTheme.typography.bodySmall.fontSize.value,
+    ) {
+        Row(Modifier.padding(Layout.CardPadding)) {
+            Icon(
+                painterResource(R.drawable.ic_error_outline_black_24dp), null,
+                tint = MaterialTheme.colorScheme.error
             )
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                MarkdownView(
+                    description,
+                    textSize = MaterialTheme.typography.bodySmall.fontSize.value,
+                )
+            }
         }
     }
 }
@@ -317,25 +355,24 @@ fun Tips(title: String, description: String) {
 private fun NotificationChannel(
     channel: NotificationChannel, appConfigurationUtils: AppConfigurationUtils
 ) {
-    Row {
-        TextButton({
-            appConfigurationUtils.deleteNotificationChannel(channel)
-        }) {
-            Text(stringResource(R.string.notification_channels_delete))
-        }
-        TextButton({
-            appConfigurationUtils.copyToClipboard(channel)
-        }) {
-            Text(stringResource(R.string.notification_channels_copy_id))
-        }
-        TextButton({
-            appConfigurationUtils.gotoNotificationChannelSettingPage(
-                channel,
-                appConfigurationUtils.configApp
-            )
-        }) {
-            Text(stringResource(R.string.notification_channels_setting))
-        }
+    Column {
+        SettingsRow(
+            title = stringResource(R.string.notification_channels_setting),
+            onClick = {
+                appConfigurationUtils.gotoNotificationChannelSettingPage(
+                    channel,
+                    appConfigurationUtils.configApp
+                )
+            }
+        )
+        SettingsRow(
+            title = stringResource(R.string.notification_channels_copy_id),
+            onClick = { appConfigurationUtils.copyToClipboard(channel) }
+        )
+        SettingsRow(
+            title = stringResource(R.string.notification_channels_delete),
+            onClick = { appConfigurationUtils.deleteNotificationChannel(channel) }
+        )
     }
 }
 

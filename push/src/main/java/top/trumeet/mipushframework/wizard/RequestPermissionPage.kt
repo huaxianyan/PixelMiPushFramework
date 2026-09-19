@@ -1,220 +1,277 @@
 package top.trumeet.mipushframework.wizard
 
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.xiaomi.xmsf.R
 import top.trumeet.mipushframework.component.MarkdownView
-import top.trumeet.mipushframework.main.MainPage
+import top.trumeet.mipushframework.component.PageColumn
+import top.trumeet.mipushframework.component.SettingsGroup
+import top.trumeet.mipushframework.component.StatusDot
+import top.trumeet.mipushframework.main.RegistrationStateStyle
 import top.trumeet.mipushframework.wizard.permission.AlertWindowPermissionInfo
 import top.trumeet.mipushframework.wizard.permission.PermissionInfo
+import top.trumeet.mipushframework.wizard.permission.PermissionOperator
 import top.trumeet.mipushframework.wizard.permission.RequestIgnoreBatteryOptimizationsPermissionInfo
 import top.trumeet.mipushframework.wizard.permission.UsageStatsPermissionInfo
+import top.trumeet.ui.theme.Layout
 import top.trumeet.ui.theme.Theme
 
 class RequestPermissionPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        enableEdgeToEdge()
         setContent {
             Theme {
-                window.navigationBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
-                    NavigationBarDefaults.Elevation
-                ).toArgb()
-                PermissionMainPage()
+                PermissionMainPage(onFinish = { WizardSPUtils.finishWizard(this) })
             }
         }
     }
 }
 
-@Preview(
-    showBackground = true,
-)
+/**
+ * The whole first-run setup on a single page.
+ *
+ * Every permission is a row of its own with the button that asks for it, and the row re-reads
+ * its own state whenever the app comes back to the foreground, so granting something in the
+ * system settings needs no "next" to be pressed. When nothing is left the finish button lights
+ * up and the wizard is over.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionMainPage(
+    onFinish: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val permissionInfos = getPermissionInfos(context)
-
-    val currentItem = remember { mutableStateOf(0) }
-    if (allPermissionsGranted(currentItem, permissionInfos)) {
-        JumpToMainActivity()
-        WizardSPUtils.finishWizard(context as ComponentActivity)
-        return
-    }
-
-    NavigateToNextPageIfPermissionGranted(permissionInfos, currentItem)
-
-    Column(
-        modifier = modifier
-            .navigationBarsPadding()
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.SpaceBetween,
-    ) {
-        RequestPermissionContent(permissionInfos[currentItem.value])
-        BottomBar(currentItem, permissionInfos)
-    }
-}
-
-@Composable
-private fun JumpToMainActivity() {
-    val context = LocalContext.current
-    context.startActivity(Intent(context, MainPage::class.java))
-}
-
-private fun allPermissionsGranted(
-    currentItem: MutableState<Int>, permissionInfos: MutableList<PermissionInfo>
-) = currentItem.value >= permissionInfos.size
-
-private fun getPermissionInfos(context: Context): MutableList<PermissionInfo> {
-    val pages = mutableListOf<PermissionInfo>().apply {
-        add(WelcomePhonyPermissionInfo(context))
-        add(UsageStatsPermissionInfo(context))
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            add(RequestIgnoreBatteryOptimizationsPermissionInfo(context))
-            add(AlertWindowPermissionInfo(context))
+    val entries = remember(context) { permissionEntries(context) }
+    val granted = remember(entries) {
+        mutableStateListOf<Boolean>().apply {
+            addAll(entries.map { it.operator.isPermissionGranted() })
         }
-        add(FinishedPhonyPermissionInfo(context))
     }
-    return pages
-}
 
-@Composable
-private fun NavigateToNextPageIfPermissionGranted(
-    pages: List<PermissionInfo>, currentItem: MutableState<Int>
-) {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        var isNotFirstResume = false
-        val observer = LifecycleEventObserver { _, event ->
-            val page = pages[currentItem.value]
-            println("Lifecycle event: $event ${currentItem.value} ${page.permissionOperator.isPermissionGranted()}")
-            if (event == Lifecycle.Event.ON_RESUME) {
-                if (isNotFirstResume && page.permissionOperator.isPermissionGranted()) {
-                    currentItem.value++
+    RecheckPermissionsOnResume(entries, granted)
+
+    val allGranted = granted.isNotEmpty() && granted.all { it }
+
+    Theme {
+        Scaffold(
+            topBar = {
+                TopAppBar(title = { Text(stringResource(R.string.app_name)) })
+            }
+        ) { padding ->
+            PageColumn(contentPadding = padding) {
+                WelcomeCard()
+
+                SettingsGroup(title = stringResource(R.string.wizard_permissions_title)) {
+                    entries.forEachIndexed { index, entry ->
+                        PermissionRow(
+                            entry = entry,
+                            granted = granted.getOrElse(index) { false }
+                        )
+                    }
                 }
-                isNotFirstResume = true
+
+                Column {
+                    Button(
+                        onClick = onFinish,
+                        enabled = allGranted,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(R.string.wizard_finish),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    if (!allGranted) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.wizard_finish_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp)
+                        )
+                    }
+                }
             }
         }
-
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
     }
 }
 
 @Composable
-fun RequestPermissionContent(permissionInfo: PermissionInfo) {
-    Column {
-        Title(permissionInfo.permissionTitle)
-        Description(permissionInfo.permissionDescription)
-    }
-}
-
-@Composable
-private fun Description(description: String) {
-    Row {
-        MarkdownView(
-            description,
-            textSize = MaterialTheme.typography.bodyLarge.fontSize.value,
+private fun WelcomeCard() {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
             modifier = Modifier
-                .align(Alignment.Bottom)
-                .padding(16.dp)
-        )
-    }
-}
-
-@Composable
-private fun Title(title: String) {
-    Row(
-        Modifier
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .fillMaxWidth()
-            .fillMaxHeight(0.4f)
-    ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier
-                .align(Alignment.Bottom)
-                .padding(16.dp)
-        )
-    }
-}
-
-@Composable
-private fun BottomBar(
-    currentItem: MutableState<Int>, permissions: List<PermissionInfo>
-) {
-    BottomAppBar(modifier = Modifier.height(56.dp)) {
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                .fillMaxWidth()
+                .padding(Layout.CardPadding)
         ) {
-            IconButton(
-                onClick = { currentItem.value-- }, enabled = currentItem.value > 0
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_previous)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    painterResource(R.mipmap.ic_launcher),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(MaterialTheme.shapes.large)
+                )
+                Spacer(Modifier.width(16.dp))
+                Text(
+                    stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
+            Spacer(Modifier.height(16.dp))
+            MarkdownView(
+                stringResource(R.string.wizard_descr),
+                textSize = MaterialTheme.typography.bodyMedium.fontSize.value
+            )
+        }
+    }
+}
 
-            val operator = permissions[currentItem.value].permissionOperator
-            IconButton(onClick = {
-                if (operator.isPermissionGranted()) {
-                    currentItem.value++
-                } else {
-                    operator.requestPermission()
+@Composable
+private fun PermissionRow(entry: PermissionEntry, granted: Boolean) {
+    ListItem(
+        leadingContent = {
+            StatusDot(if (granted) RegistrationStateStyle.GreenColor else NotGrantedColor)
+        },
+        headlineContent = {
+            Text(entry.title, style = MaterialTheme.typography.titleMedium)
+        },
+        supportingContent = {
+            Text(entry.description, style = MaterialTheme.typography.bodyMedium)
+        },
+        trailingContent = {
+            if (granted) {
+                Text(
+                    text = stringResource(R.string.wizard_permission_granted),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = RegistrationStateStyle.GreenColor
+                )
+            } else {
+                FilledTonalButton(onClick = { entry.operator.requestPermission() }) {
+                    Text(stringResource(R.string.wizard_permission_grant))
                 }
-            }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = stringResource(R.string.action_next)
+            }
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+    )
+}
+
+/** Re-reads every permission whenever the app returns to the foreground. */
+@Composable
+private fun RecheckPermissionsOnResume(
+    entries: List<PermissionEntry>,
+    granted: MutableList<Boolean>
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, entries) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                entries.forEachIndexed { index, entry ->
+                    val value = entry.operator.isPermissionGranted()
+                    if (granted.getOrNull(index) != value) {
+                        granted[index] = value
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+
+private val NotGrantedColor = Color(0xFF9E9E9E)
+
+private class PermissionEntry(
+    val title: String,
+    val description: String,
+    val operator: PermissionOperator
+)
+
+private fun PermissionInfo.toEntry() = PermissionEntry(
+    title = permissionTitle,
+    description = permissionDescription,
+    operator = permissionOperator
+)
+
+private fun permissionEntries(context: Context): List<PermissionEntry> {
+    val entries = mutableListOf<PermissionEntry>()
+    entries.add(UsageStatsPermissionInfo(context).toEntry())
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        entries.add(RequestIgnoreBatteryOptimizationsPermissionInfo(context).toEntry())
+        entries.add(AlertWindowPermissionInfo(context).toEntry())
+    }
+    return entries
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PermissionMainPagePreview() {
+    Theme {
+        PageColumn {
+            WelcomeCard()
+            SettingsGroup(title = stringResource(R.string.wizard_permissions_title)) {
+                PermissionRow(
+                    PermissionEntry(
+                        stringResource(R.string.wizard_title_stats_permission),
+                        stringResource(R.string.wizard_title_stats_permission_text),
+                        UsageStatsPermissionInfo(LocalContext.current).permissionOperator
+                    ),
+                    granted = true
+                )
+                PermissionRow(
+                    PermissionEntry(
+                        stringResource(R.string.wizard_title_alert_window_permission),
+                        stringResource(R.string.wizard_title_alert_window_text),
+                        AlertWindowPermissionInfo(LocalContext.current).permissionOperator
+                    ),
+                    granted = false
                 )
             }
         }

@@ -1,9 +1,6 @@
 package top.trumeet.mipushframework.main.subpage
 
 import android.content.Context
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,7 +8,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,6 +42,7 @@ import top.trumeet.common.utils.Utils
 import top.trumeet.mipush.provider.entities.RegisteredApplication
 import top.trumeet.mipushframework.component.AppIcon
 import top.trumeet.mipushframework.component.RefreshableLazyColumn
+import top.trumeet.mipushframework.component.SupportingLine
 import top.trumeet.mipushframework.component.iconCache
 import top.trumeet.mipushframework.main.RegistrationStateStyle
 import top.trumeet.mipushframework.utils.ParseUtils
@@ -127,18 +130,24 @@ private fun updateInfos(
 @Composable
 private fun Footer(notUseMiPushCount: Int) {
     val context = LocalContext.current
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Icon(
             painterResource(R.drawable.ic_info_outline_black_24dp),
             null,
-            tint = Color(0xFF757575),
-            modifier = Modifier.padding(10.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
         )
+        Spacer(Modifier.width(12.dp))
         Text(
             ApplicationPageOperation.getNotSupportHint(
                 context,
                 notUseMiPushCount
-            )
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -146,50 +155,47 @@ private fun Footer(notUseMiPushCount: Int) {
 @Composable
 private fun ApplicationItem(item: RegisteredApplication) {
     val context = LocalContext.current
+    val info = g_itemsInfo[item.packageName]
+    val state = info?.registrationState
+    val stateColor = state?.second ?: MaterialTheme.colorScheme.onSurface
+    val lastReceive = info?.lastReceiveTime.orEmpty()
 
-    Row(
-        Modifier
-            .clickable {
-                EventListPageUtils.startManagePermissions(
-                    context,
-                    item.packageName,
-                    true
-                )
-            }
-            .padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        onClick = {
+            EventListPageUtils.startManagePermissions(
+                context,
+                item.packageName,
+                true
+            )
+        },
+        modifier = Modifier.fillMaxWidth()
     ) {
-        AppIcon(item.packageName, item.appName, Modifier.size(48.dp))
-        Spacer(Modifier.width(20.dp))
-        Column {
-            AppInfo(item)
-            LastReceive(item)
-        }
-    }
-}
-
-@Composable
-private fun LastReceive(item: RegisteredApplication) {
-    val info = g_itemsInfo[item.packageName]!!
-    Text(
-        info.lastReceiveTime,
-        style = MaterialTheme.typography.bodyLarge,
-    )
-}
-
-@Composable
-private fun AppInfo(item: RegisteredApplication) {
-    val info = g_itemsInfo[item.packageName]!!
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(
-            item.appName,
-            style = MaterialTheme.typography.bodyLarge,
-            color = info.registrationState.second
-        )
-        Text(
-            info.registrationState.first,
-            style = MaterialTheme.typography.bodyMedium,
-            color = info.registrationState.second
+        ListItem(
+            headlineContent = {
+                Text(
+                    item.appName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = stateColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            supportingContent = {
+                // An application that never received a push has no time to show, but the row
+                // still reserves the line, so every card in the list is the same height.
+                SupportingLine(lastReceive)
+            },
+            leadingContent = {
+                AppIcon(item.packageName, item.appName, Modifier.size(40.dp))
+            },
+            trailingContent = {
+                Text(
+                    state?.first.orEmpty(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = stateColor
+                )
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
         )
     }
 }

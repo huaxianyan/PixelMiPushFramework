@@ -1,5 +1,4 @@
 <resources>
-    <string name="push_service_name">Push</string>
     <string name="enable">启用</string>
     <string name="disable">禁用</string>
 
@@ -17,7 +16,6 @@
     <string name="event_command">收到命令</string>
 
     <!-- Permissions -->
-    <string name="request_permission">我们需要一个权限</string>
 
 
     <string name="error_usage_stats">获取“使用统计”异常，如果您的系统不支持，尝试在管理器的设置中将“前台应用检测模式”切换为兼容模式 </string>
@@ -27,7 +25,6 @@
 
     <string name="wizard_title_doze_whitelist">移除电池优化</string>
     <string name="wizard_descr_doze_whitelist">如果您对推送服务启用了“电池优化”，推送服务将无法保持运行。请点按下面的按钮请求加入电池优化的白名单（部分 ROM 可能不支持，如果您点按后没有反应，请直接点击“下一步”）</string>
-    <string name="wizard_button_remove_doze">移除电池优化</string>
 
 
 

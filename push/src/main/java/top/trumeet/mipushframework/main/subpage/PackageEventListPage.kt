@@ -1,15 +1,14 @@
 package top.trumeet.mipushframework.main.subpage
 
 import android.content.Context
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,8 +20,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,6 +35,8 @@ import kotlinx.coroutines.withContext
 import top.trumeet.common.utils.Utils
 import top.trumeet.mipush.provider.db.EventDb
 import top.trumeet.mipushframework.component.AppIcon
+import top.trumeet.mipushframework.component.EmptyHint
+import top.trumeet.mipushframework.component.PageColumn
 import top.trumeet.mipushframework.component.RefreshableLazyColumn
 import top.trumeet.mipushframework.component.SearchBar
 import top.trumeet.mipushframework.utils.ParseUtils
@@ -55,7 +58,9 @@ fun PackageEventList(onClick: (String) -> Unit) {
     val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
     var groups by remember { mutableStateOf<List<PackageEventGroupForDisplay>?>(null) }
-    var isNeedRefresh by rememberSaveable { mutableStateOf(true) }
+    // Deliberately not rememberSaveable: `groups` is only remembered, so a restored
+    // "already loaded" flag would keep this list empty after leaving the tab.
+    var isNeedRefresh by remember { mutableStateOf(true) }
 
     val refreshScope = rememberCoroutineScope { Dispatchers.IO }
     val onRefresh: (onRefreshed: () -> Unit) -> Unit = { onRefreshed ->
@@ -76,7 +81,7 @@ fun PackageEventList(onClick: (String) -> Unit) {
             SearchBar(stringResource(R.string.action_search)) { query = it }
             RefreshableLazyColumn(onRefresh, { false }, onRefresh, isNeedRefresh) {
                 if (shown.isNullOrEmpty()) {
-                    item { EmptyHint() }
+                    item { EmptyHint(stringResource(R.string.event_list_empty)) }
                 } else {
                     items(shown, { it.packageName }) {
                         PackageEventItem(it, onClick)
@@ -111,45 +116,47 @@ private fun PackageEventItem(
     onClick: (String) -> Unit
 ) {
     val context = LocalContext.current
-    Row(
-        Modifier
-            .clickable { onClick(item.packageName) }
-            .fillMaxWidth()
-            .padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        onClick = { onClick(item.packageName) },
+        modifier = Modifier.fillMaxWidth()
     ) {
-        AppIcon(item.packageName, item.appName, modifier = Modifier.size(48.dp))
-        Spacer(Modifier.width(20.dp))
-        Column(Modifier.weight(1f)) {
-            Text(item.appName, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                item.packageName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Spacer(Modifier.width(10.dp))
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                stringResource(R.string.event_count, item.count),
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                ParseUtils.getFriendlyDateString(item.lastDate, Utils.getUTC(), context),
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
+        ListItem(
+            headlineContent = {
+                Text(
+                    item.appName,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            supportingContent = {
+                Text(
+                    item.packageName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            leadingContent = {
+                AppIcon(item.packageName, item.appName, Modifier.size(40.dp))
+            },
+            trailingContent = {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        stringResource(R.string.event_count, item.count),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Text(
+                        ParseUtils.getFriendlyDateString(item.lastDate, Utils.getUTC(), context),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+        )
     }
-}
-
-@Composable
-private fun EmptyHint() {
-    Text(
-        stringResource(R.string.event_list_empty),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(16.dp)
-    )
 }
 
 @Preview(showBackground = true, device = Devices.PIXEL_3, showSystemUi = true)
@@ -157,7 +164,7 @@ private fun EmptyHint() {
 fun PackageEventListPreview() {
     Utils.context = LocalContext.current
     Page {
-        Column {
+        PageColumn {
             PackageEventItem(
                 PackageEventGroupForDisplay("com.example.chat", "Example Chat", 128, Date()),
                 {}

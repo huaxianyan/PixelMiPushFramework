@@ -1,6 +1,7 @@
 package top.trumeet.mipushframework.main.subpage
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +23,9 @@ import top.trumeet.mipushframework.component.SearchBar
 
 /**
  * The second level of the event pages: every event of a single application.
+ *
+ * The top bar of the shell is hidden on this route, so the one below carries the back arrow and
+ * claims no window insets of its own — the shell already handed them down.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +47,8 @@ fun PackageEventsPage(packageName: String, onBack: () -> Unit) {
                             contentDescription = stringResource(R.string.action_back)
                         )
                     }
-                }
+                },
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
             SearchBar(stringResource(R.string.action_search)) { query = it }
             EventList(query, packageName)

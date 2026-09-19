@@ -12,12 +12,15 @@ import com.xiaomi.xmsf.R
  *
  * A stored uri looks like
  * `content://com.android.externalstorage.documents/tree/primary%3ASyncthing%2FConfig`,
- * the readable form of it is `Internal storage / Syncthing / Config`.
+ * the readable form of it is `Internal storage/Syncthing/Config`.
+ *
+ * The separator is a bare slash with no padding: this is a path being shown, not prose, so the
+ * spacing rules of Chinese typography do not apply to it.
  */
 object ConfigurationDirectoryUtils {
 
     private const val PRIMARY_VOLUME_ID = "primary"
-    private const val SEPARATOR = " / "
+    private const val SEPARATOR = "/"
 
     fun displayName(context: Context, uri: Uri?): String {
         if (uri == null) {
@@ -34,8 +37,20 @@ object ConfigurationDirectoryUtils {
             return uri.toString()
         }
 
-        val volume = volumeName(context, segments.first())
-        return (listOf(volume) + segments.drop(1)).joinToString(SEPARATOR)
+        // The first segment carries the volume, not the whole segment: a tree
+        // document id looks like `primary:Syncthing/Config`, where `primary` names
+        // the volume and `Syncthing` is the first directory below it.
+        val head = segments.first()
+        val colon = head.indexOf(':')
+        val volumeId = if (colon >= 0) head.substring(0, colon) else head
+        val headPath = if (colon >= 0) head.substring(colon + 1) else null
+
+        val parts = mutableListOf(volumeName(context, volumeId))
+        if (!headPath.isNullOrEmpty()) {
+            parts.add(headPath)
+        }
+        parts.addAll(segments.drop(1))
+        return parts.joinToString(SEPARATOR)
     }
 
     private fun volumeName(context: Context, volumeId: String): String {

@@ -5,40 +5,47 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.google.android.material.elevation.SurfaceColors
 import com.xiaomi.xmsf.R
 import top.trumeet.mipushframework.component.MarkdownView
+import top.trumeet.mipushframework.component.NavigationRow
+import top.trumeet.mipushframework.component.PageColumn
+import top.trumeet.mipushframework.component.SettingsGroup
 import top.trumeet.ui.theme.Theme
 import java.io.InputStreamReader
 
-class HelpPage : AppCompatActivity() {
+/**
+ * The help page is drawn entirely in Compose, so it is a plain [ComponentActivity]: an
+ * AppCompat activity would put the system action bar on top of the Compose top bar and the
+ * activity label would show up twice.
+ */
+class HelpPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            val color = SurfaceColors.SURFACE_2.getColor(this)
-            window.statusBarColor = color
             Theme {
-                HelpList()
+                HelpHost(onBack = { finish() })
             }
         }
     }
@@ -49,46 +56,87 @@ class HelpPage : AppCompatActivity() {
     showBackground = true,
 )
 @Composable
-fun HelpPage(modifier: Modifier = Modifier) {
-    HelpList()
+fun HelpHostPreview() {
+    HelpHost()
 }
 
+/** The help page and the article it opens, sharing one back stack. */
 @Composable
-fun HelpList(modifier: Modifier = Modifier) {
+fun HelpHost(modifier: Modifier = Modifier, onBack: () -> Unit = {}) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "list", modifier = modifier) {
-        composable("list") { HelpList(navController) }
+        composable("list") { HelpList(navController, onBack) }
         composable("markdown/{markdownResId}") { backStackEntry ->
             val markdownResId = backStackEntry.arguments?.getString("markdownResId")?.toInt()
-            Markdown(markdownResId)
+            MarkdownPage(markdownResId, onBack = { navController.popBackStack() })
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HelpList(navController: NavHostController) {
-    Column {
-        FAQ(navController)
-        HorizontalDivider()
-        ContactUs()
+private fun HelpList(navController: NavHostController, onBack: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.helplib_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        PageColumn(contentPadding = padding) {
+            FAQ(navController)
+            ContactUs()
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Markdown(markdownResId: Int?) {
-    MarkdownView(
-        readRawFile(LocalContext.current, markdownResId!!), modifier = Modifier.padding(16.dp)
-    )
+private fun MarkdownPage(markdownResId: Int?, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val title = getArticles(context).firstOrNull { it.markdownRes == markdownResId }
+        ?.let { stringResource(it.titleRes) }
+        ?: stringResource(R.string.helplib_title)
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        MarkdownView(
+            readRawFile(context, markdownResId!!),
+            modifier = Modifier.padding(padding)
+        )
+    }
 }
 
 @Composable
 private fun FAQ(
     navController: NavHostController
 ) {
-    Group(stringResource(R.string.helplib_title_faq))
-    for (article in getArticles(LocalContext.current)) {
-        ClickableListItem(article.titleRes) {
-            navController.navigate("markdown/${article.markdownRes}") // 跳转并传递数据
+    SettingsGroup(stringResource(R.string.helplib_title_faq)) {
+        for (article in getArticles(LocalContext.current)) {
+            NavigationRow(stringResource(article.titleRes)) {
+                navController.navigate("markdown/${article.markdownRes}") // 跳转并传递数据
+            }
         }
     }
 }
@@ -96,47 +144,10 @@ private fun FAQ(
 @Composable
 private fun ContactUs() {
     val context = LocalContext.current
-    Group(stringResource(R.string.helplib_title_contact))
-    ClickableListItem(R.string.helplib_action_qq_group) {
-        openUrl(context, "https://pd.qq.com/s/4tsiu8hlu")
-    }
-    ClickableListItem(R.string.helplib_action_telegram_group) {
-        openUrl(context, "https://t.me/+aiUicn7pRudjYThl")
-    }
-    ClickableListItem(R.string.helplib_action_issue) {
-        openUrl(context, "https://github.com/NihilityT/MiPushFramework/issues")
-    }
-}
-
-@Composable
-private fun Group(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.headlineSmall,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(16.dp)
-    )
-}
-
-@Composable
-private fun ClickableListItem(textResourceId: Int, onClick: () -> Unit) {
-    ClickableListItem(stringResource(textResourceId), onClick)
-}
-
-@Composable
-private fun ClickableListItem(item: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(16.dp)
-            .padding(start = 24.dp)
-            .fillMaxWidth()
-    ) {
-        Text(
-            text = item,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+    SettingsGroup(stringResource(R.string.helplib_title_contact)) {
+        NavigationRow(stringResource(R.string.helplib_action_issue)) {
+            openUrl(context, "https://github.com/huaxianyan/PixelMiPushFramework/issues")
+        }
     }
 }
 

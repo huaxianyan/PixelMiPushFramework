@@ -2,12 +2,12 @@ package top.trumeet.mipushframework.component
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -23,8 +23,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -33,26 +31,63 @@ import androidx.compose.ui.unit.dp
 import com.xiaomi.xmsf.R
 import com.xiaomi.xmsf.utils.ConfigCenter
 
+/**
+ * One group of settings: a heading on the page background plus the card that holds the rows.
+ *
+ * A null [title] keeps the card but drops the heading, for the groups that are the only thing on
+ * their page.
+ */
+@Composable
+fun SettingsGroup(
+    title: String? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(Modifier.fillMaxWidth()) {
+        if (title != null) {
+            SectionHeader(title)
+        }
+        SettingsCard(content = content)
+    }
+}
+
+/**
+ * A row of a [SettingsGroup].
+ *
+ * [content] draws a control on the right (a switch, a chip); [chevron] marks a row that opens
+ * another page. When both are absent the row is a plain action.
+ */
 @Composable
 fun SettingsItem(
     title: String,
     summary: String? = null,
     content: (@Composable RowScope.() -> Unit)? = null,
     enabled: Boolean = true,
+    chevron: Boolean = false,
     onClick: () -> Unit
 ) {
-    Row(
-        Modifier
-            .clickable(onClick = onClick, enabled = enabled)
-            .fillMaxWidth()
-            .padding(5.dp)
-            .heightIn(min = 40.dp)
-            .alpha(if (enabled) 1f else 0.5f),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        ItemInfo(title, summary, modifier = Modifier.weight(9f))
-        content?.let { it() }
-    }
+    SettingsRow(
+        title = title,
+        summary = summary,
+        enabled = enabled,
+        onClick = onClick,
+        trailing = when {
+            content != null -> {
+                {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        content()
+                    }
+                }
+            }
+
+            chevron -> {
+                {
+                    NavigationChevron()
+                }
+            }
+
+            else -> null
+        }
+    )
 }
 
 @Composable
@@ -63,15 +98,12 @@ fun SettingsItem(
     values: Array<String>,
     defaultValue: String
 ) {
-    var shouldShowDialog by remember { mutableStateOf(false) }
     SettingsItem(
         title = title,
         summary = summary,
         confirmButton = {},
-        content = {
-            ItemLists(key, defaultValue, values) {
-                shouldShowDialog = false
-            }
+        content = { dismiss ->
+            ItemLists(key, defaultValue, values, dismiss)
         }
     )
 }
@@ -87,21 +119,19 @@ fun SettingsItem(
     var shouldShowDialog by remember { mutableStateOf(false) }
     SettingsItem(
         title = title,
-        summary = summary,
-        content = {
-            val hideDialog = {
-                shouldShowDialog = false
-                onDismiss?.invoke()
-                Unit
-            }
-            SettingsDialog(title, shouldShowDialog, hideDialog, {
-                confirmButton(hideDialog)
-            }) {
-                content(hideDialog)
-            }
-        }
+        summary = summary
     ) {
         shouldShowDialog = true
+    }
+    if (shouldShowDialog) {
+        val hideDialog = {
+            shouldShowDialog = false
+            onDismiss?.invoke()
+            Unit
+        }
+        SettingsDialog(title, true, hideDialog, { confirmButton(hideDialog) }) {
+            content(hideDialog)
+        }
     }
 }
 
@@ -133,38 +163,20 @@ private fun ItemLists(
     val preferences = ConfigCenter.getSharedPreferences(context)
     val selected = preferences.getString(key, defaultValue)!!.toInt()
 
-    LazyColumn {
+    LazyColumn(Modifier.heightIn(max = 400.dp)) {
         itemsIndexed(values) { index, item ->
-            Row(
-                Modifier
-                    .clickable {
-                        preferences
-                            .edit()
-                            .putString(key, index.toString())
-                            .apply()
-                        onDismiss()
-                    }
-                    .fillMaxWidth()
-                    .padding(top = 10.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(index == selected, onClick = null)
-                Spacer(modifier = Modifier.width(5.dp))
-                Text(text = item)
-            }
+            SettingsRow(
+                title = item,
+                modifier = Modifier.clickable {
+                    preferences
+                        .edit()
+                        .putString(key, index.toString())
+                        .apply()
+                    onDismiss()
+                },
+                leading = { RadioButton(index == selected, onClick = null) }
+            )
         }
-    }
-}
-
-@Composable
-fun SettingsGroup(title: String, content: @Composable () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(10.dp)
-    ) {
-        Text(title, style = MaterialTheme.typography.labelLarge)
-        content()
     }
 }
 
@@ -196,25 +208,18 @@ fun SettingsItem(
     onClick: () -> Unit
 ) {
     SettingsItem(
-        title, summary, content = {
+        title = title,
+        summary = summary,
+        content = {
+            Spacer(Modifier.width(8.dp))
             Switch(
                 checked = checked,
-                onCheckedChange = null,
-                modifier = Modifier.scale(0.7f)
+                onCheckedChange = null
             )
-        }, enabled = enabled,
+        },
+        enabled = enabled,
         onClick = onClick
     )
-}
-
-@Composable
-fun ItemInfo(title: String, summary: String?, modifier: Modifier = Modifier) {
-    Column(modifier.padding(start = 10.dp, end = 10.dp)) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        summary?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
 }
 
 @Preview(showBackground = true)
@@ -236,19 +241,28 @@ fun InfoDialogPreview() {
 @Preview(showBackground = true)
 @Composable
 fun SettingsItemPreview() {
-    SettingsItem(
-        title = stringResource(R.string.settings_start_foreground_service),
-        summary = stringResource(R.string.settings_start_foreground_service_summary),
-        key = "StartForegroundService",
-        defaultValue = false,
-        enabled = false
-    )
+    PageColumn {
+        SettingsGroup(stringResource(R.string.settings_options)) {
+            SettingsItem(
+                title = stringResource(R.string.settings_start_foreground_service),
+                summary = stringResource(R.string.settings_start_foreground_service_summary),
+                key = "StartForegroundService",
+                defaultValue = false,
+                enabled = false
+            )
+        }
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun SingleLineSettingsItemPreview() {
-    SettingsItem(
-        title = stringResource(R.string.settings_start_foreground_service)
-    ) {}
+    PageColumn {
+        SettingsGroup(stringResource(R.string.settings_options)) {
+            SettingsItem(
+                title = stringResource(R.string.settings_start_foreground_service),
+                chevron = true
+            ) {}
+        }
+    }
 }

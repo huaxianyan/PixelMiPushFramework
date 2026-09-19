@@ -3,31 +3,32 @@ package top.trumeet.mipushframework.main
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -63,16 +64,11 @@ class MainPage : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        enableEdgeToEdge()
         mainPageUtils1.initOnCreate(applicationContext) { status, host ->
             ConnectionStatusHolder.update(status, host)
         }
         setContent {
-            Theme {
-                window.navigationBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
-                    NavigationBarDefaults.Elevation
-                ).toArgb()
-            }
             Main(Screen.Dashboard.route.toString()) { navController ->
                 composable(Screen.Dashboard.route.toString()) { Dashboard() }
                 composable(Screen.Events.route.toString()) {
@@ -112,19 +108,17 @@ private sealed class Screen(val route: Int, val icon: Int) {
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
+fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
     val items = listOf(
         Screen.Dashboard, Screen.Events, Screen.Apps, Screen.Settings
     )
 
-    NavigationBar(Modifier.height(56.dp)) {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-
+    NavigationBar {
         items.forEach { screen ->
             val name = stringResource(screen.route)
             NavigationBarItem(
-                icon = { Icon(painterResource(id = screen.icon), contentDescription = name) },
+                icon = { Icon(painterResource(id = screen.icon), contentDescription = null) },
+                label = { Text(name) },
                 selected = currentRoute == screen.route.toString() ||
                         (screen is Screen.Events &&
                                 currentRoute?.startsWith(PackageEventsRoutePrefix) == true),
@@ -141,30 +135,48 @@ fun BottomNavigationBar(navController: NavController) {
     }
 }
 
+/**
+ * The shell of the app: one top bar, one bottom bar, and the destination in between.
+ *
+ * A page that goes deeper than a tab ([Screen.Events] does) hides both of them and brings its
+ * own back arrow, so there is never more than one navigation bar on screen.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Main(
     startDestination: String,
     navContent: NavGraphBuilder.(NavController) -> Unit
 ) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val isSecondaryPage = currentRoute?.startsWith(PackageEventsRoutePrefix) == true
 
     Theme {
-        Column(
-            Modifier
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(Modifier.weight(1f)) {
-                NavHost(
-                    navController = navController,
-                    startDestination = startDestination
+        Scaffold(
+            topBar = {
+                if (!isSecondaryPage) {
+                    TopAppBar(title = { Text(stringResource(R.string.app_name)) })
+                }
+            },
+            bottomBar = {
+                AnimatedVisibility(
+                    visible = !isSecondaryPage,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + slideOutVertically { height -> height / 2 } +
+                            shrinkVertically()
                 ) {
-                    navContent(navController)
+                    BottomNavigationBar(navController, currentRoute)
                 }
             }
-            BottomNavigationBar(navController)
+        ) { padding ->
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.padding(padding)
+            ) {
+                navContent(navController)
+            }
         }
     }
 }

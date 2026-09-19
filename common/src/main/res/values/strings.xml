@@ -1,5 +1,4 @@
 <resources>
-    <string name="push_service_name">Push</string>
     <string name="enable">Enable</string>
     <string name="disable">Disable</string>
 
@@ -16,7 +15,6 @@
     <string name="event_command">Receive command</string>
 
     <!-- Permissions -->
-    <string name="request_permission">We need permissions to work</string>
 
 
     <string name="error_usage_stats">Getting UsageStatis error. If your system does not support this feature, switch the \"Foreground app detection mode\" to Accessibility mode in the manager\'s settings.</string>
@@ -25,7 +23,6 @@
 
     <string name="wizard_title_doze_whitelist">Remove battery optimization</string>
     <string name="wizard_descr_doze_whitelist">The Push service will not keep running if it is \'battery optimized\'. Please click the button below to request adding it to battery-optimized whitelist (some ROMs may not be supported, if you do not respond after clicking, please click \"Next\".)</string>
-    <string name="wizard_button_remove_doze">Remove battery optimization</string>
     <string name="settings_experimental">Experimental</string>
 
 

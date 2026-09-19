@@ -1,19 +1,17 @@
 package top.trumeet.mipushframework.main.subpage
 
 import android.content.Context
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,15 +26,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import com.elvishew.xlog.XLog
 import com.xiaomi.xmsf.R
 import com.xiaomi.xmsf.push.utils.RegSecUtils
@@ -55,6 +54,9 @@ import java.util.Calendar
 import java.util.Date
 
 private val receiveDateFormat: SimpleDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+
+/** `disable` is what the dimmed card already says, so it is kept out of the overline. */
+private const val DisabledOption = "disable"
 
 @Composable
 fun EventList(query: String = "", packageName: String = "") {
@@ -167,7 +169,10 @@ private fun EventDetailsDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Developer Info", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    stringResource(R.string.event_developer_info),
+                    style = MaterialTheme.typography.titleLarge
+                )
 
                 TextButton({
                     EventListPageUtils.startManagePermissions(
@@ -232,47 +237,49 @@ fun EventList(
 
 @Composable
 private fun EventItem(item: EventInfoForDisplay, onClick: (EventInfoForDisplay) -> Unit) {
-    val disabled = item.configOptions.contains("disable")
+    val disabled = item.configOptions.contains(DisabledOption)
     val alpha = if (disabled) 0.5f else 1f
+    Card(
+        onClick = { onClick(item) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(alpha)
+    ) {
+        ListItem(
+            overlineContent = { EventOverline(item) },
+            headlineContent = { EventTitle(item) },
+            supportingContent = { EventContent(item) },
+            leadingContent = {
+                AppIcon(item.packageName, item.appName, modifier = Modifier.size(40.dp))
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+        )
+    }
+}
+
+/** Channel and time on one line, and only the options that add something. */
+@Composable
+private fun EventOverline(item: EventInfoForDisplay) {
+    val options = item.configOptions.filterNot { it == DisabledOption }
     Row(
-        Modifier
-            .clickable { onClick(item) }
-            .padding(10.dp).alpha(alpha),
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppIcon(item.packageName, item.appName, modifier = Modifier.size(48.dp))
-        Spacer(Modifier.width(20.dp))
-        Column {
-            Row {
-                ConfigOptions(item)
-                ChannelInfo(item)
-                Spacer(Modifier.weight(1f))
-                EventReceiveDate(item)
-            }
-            EventTitle(item)
-            EventContent(item)
-        }
+        Text(
+            text = (options + item.channel).joinToString(" · "),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        Text(
+            text = receiveDateFormat.format(item.receiveDate),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
-}
-
-@Composable
-private fun ConfigOptions(item: EventInfoForDisplay) {
-    if (item.configOptions.isNotEmpty()) {
-        Text(item.configOptions.toString(), style = MaterialTheme.typography.bodySmall)
-        Spacer(Modifier.width(5.dp))
-    }
-}
-
-@Composable
-private fun ChannelInfo(item: EventInfoForDisplay) {
-    Text(item.channel, style = MaterialTheme.typography.bodySmall)
-}
-
-
-@Composable
-private fun EventReceiveDate(item: EventInfoForDisplay) {
-    val format = receiveDateFormat
-    Text(format.format(item.receiveDate), style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
@@ -280,6 +287,8 @@ private fun EventTitle(item: EventInfoForDisplay) {
     Text(
         item.title,
         style = MaterialTheme.typography.bodyLarge,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis
     )
 }
 
@@ -288,6 +297,9 @@ private fun EventContent(item: EventInfoForDisplay) {
     Text(
         item.content,
         style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 3,
+        overflow = TextOverflow.Ellipsis
     )
 }
 
@@ -381,4 +393,3 @@ data class EventInfoForDisplay(
     val appName: String? = null,
     val event: Event = Event(),
 )
-
