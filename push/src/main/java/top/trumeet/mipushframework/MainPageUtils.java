@@ -17,7 +17,9 @@ import com.xiaomi.smack.ConnectionConfiguration;
 
 public class MainPageUtils {
     private static final String TAG = MainPageUtils.class.getSimpleName();
-    InternalMessenger messenger;
+    private InternalMessenger messenger;
+    private ConnectionStatusChanged connectionStatusChanged;
+    private boolean receiverRegistered = false;
 
     public interface ConnectionStatusChanged {
         /**
@@ -30,19 +32,29 @@ public class MainPageUtils {
     public MainPageUtils() {
     }
 
-    public void initOnCreate(Context context, ConnectionStatusChanged connectionStatusChanged) {
+    /**
+     * Registers the status receiver once and then asks the service for the current status on every
+     * call, so a re-created activity neither leaks a receiver nor shows a stale status.
+     */
+    public void initOnCreate(Context context, ConnectionStatusChanged callback) {
         context = context.getApplicationContext();
-        messenger = new InternalMessenger(context) {{
-            register(new IntentFilter(XMPushServiceMessenger.IntentSetConnectionStatus));
-            addListener(intent -> {
-                connectionStatusChanged.onChange(parseStatus(intent.getStringExtra("status")),
-                        intent.getStringExtra("host"));
-            });
-        }};
+        this.connectionStatusChanged = callback;
+        if (!receiverRegistered) {
+            receiverRegistered = true;
+            messenger = new InternalMessenger(context) {{
+                register(new IntentFilter(XMPushServiceMessenger.IntentSetConnectionStatus));
+                addListener(intent -> {
+                    if (connectionStatusChanged != null) {
+                        connectionStatusChanged.onChange(parseStatus(intent.getStringExtra("status")),
+                                intent.getStringExtra("host"));
+                    }
+                });
+            }};
 
-        printHookResultForCheck();
+            printHookResultForCheck();
 
-        Global.ConfigCenter().loadConfigurations(context);
+            Global.ConfigCenter().loadConfigurations(context);
+        }
 
         messenger.send(new Intent(XMPushServiceMessenger.IntentGetConnectionStatus));
     }

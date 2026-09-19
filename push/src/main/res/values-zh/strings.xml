@@ -293,6 +293,8 @@
     <string name="event_count">%1$d 条记录</string>
     <string name="event_list_empty">暂无记录</string>
     <string name="action_back">返回</string>
+    <string name="action_previous">上一项</string>
+    <string name="action_next">下一项</string>
 
 
 </resources>

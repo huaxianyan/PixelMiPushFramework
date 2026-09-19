@@ -51,6 +51,7 @@ import top.trumeet.mipushframework.component.AppIcon
 import top.trumeet.mipushframework.component.RefreshableLazyColumn
 import top.trumeet.mipushframework.component.TextView
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 
 private val receiveDateFormat: SimpleDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
@@ -362,7 +363,11 @@ fun EventListPreview() {
     }
 }
 
-private fun date(year: Int, month: Int, date: Int) = Date(year - 1900, month - 1, date)
+private fun date(year: Int, month: Int, date: Int): Date =
+    Calendar.getInstance().apply {
+        clear()
+        set(year, month - 1, date)
+    }.time
 
 
 data class EventInfoForDisplay(

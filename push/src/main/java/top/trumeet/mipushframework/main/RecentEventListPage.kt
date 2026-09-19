@@ -16,7 +16,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
+import com.xiaomi.xmsf.R
 import top.trumeet.mipushframework.component.SearchBar
 import top.trumeet.mipushframework.main.subpage.EventList
 import top.trumeet.ui.theme.Theme
@@ -39,7 +41,7 @@ class RecentEventListPage : ComponentActivity() {
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     var query by rememberSaveable { mutableStateOf("") }
-                    SearchBar("Search...") { query = it }
+                    SearchBar(stringResource(R.string.action_search)) { query = it }
                     EventList(query, packageName)
                 }
             }
