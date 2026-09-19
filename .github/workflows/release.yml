@@ -96,13 +96,6 @@ jobs:
           done
           exit $status
 
-      - name: Upload the signed APKs as a workflow artifact
-        uses: actions/upload-artifact@v4.6.0
-        with:
-          name: signed-release-apks
-          path: push/build/outputs/apk/*/release/*-release.apk
-          if-no-files-found: error
-
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
