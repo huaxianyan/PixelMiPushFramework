@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import com.nihility.Global;
 import com.nihility.InternalMessenger;
 import com.nihility.service.XMPushServiceListener;
@@ -18,7 +20,11 @@ public class MainPageUtils {
     InternalMessenger messenger;
 
     public interface ConnectionStatusChanged {
-        void onChange(XMPushServiceListener.ConnectionStatus status);
+        /**
+         * @param status the connection status, null when the service reported a value we do not know.
+         * @param host   the host of the live connection, null when there is no connection.
+         */
+        void onChange(@Nullable XMPushServiceListener.ConnectionStatus status, @Nullable String host);
     }
 
     public MainPageUtils() {
@@ -29,8 +35,8 @@ public class MainPageUtils {
         messenger = new InternalMessenger(context) {{
             register(new IntentFilter(XMPushServiceMessenger.IntentSetConnectionStatus));
             addListener(intent -> {
-                String status = intent.getStringExtra("status");
-                connectionStatusChanged.onChange(XMPushServiceListener.ConnectionStatus.valueOf(status));
+                connectionStatusChanged.onChange(parseStatus(intent.getStringExtra("status")),
+                        intent.getStringExtra("host"));
             });
         }};
 
@@ -39,6 +45,21 @@ public class MainPageUtils {
         Global.ConfigCenter().loadConfigurations(context);
 
         messenger.send(new Intent(XMPushServiceMessenger.IntentGetConnectionStatus));
+    }
+
+    /**
+     * {@link XMPushServiceMessenger#getDesc(int)} also reports "unknown", which is not an enum constant.
+     */
+    private static @Nullable XMPushServiceListener.ConnectionStatus parseStatus(@Nullable String status) {
+        if (status == null) {
+            return null;
+        }
+        try {
+            return XMPushServiceListener.ConnectionStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            Log.w(TAG, "Unrecognized connection status: " + status);
+            return null;
+        }
     }
 
     void printHookResultForCheck() {

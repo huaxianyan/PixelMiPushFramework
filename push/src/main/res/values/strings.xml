@@ -104,6 +104,7 @@
     <string name="main_event">Logs</string>
     <string name="main_apps">Apps</string>
     <string name="main_settings">Configs</string>
+    <string name="main_dashboard">Dashboard</string>
 
 
     <!-- About -->
@@ -201,8 +202,12 @@ Please grant the <b>Run in the background or wake up</b> permissions.
     <string name="settings_service_advance_setting">Advanced</string>
     <string name="settings_summary_service_advance_setting">Advanced configurations interface</string>
     <string name="settings_configuration_directory">Change configuration directory</string>
+    <string name="settings_configuration_directory_not_set">Not set</string>
+    <string name="settings_volume_internal_storage">Internal storage</string>
     <string name="settings_XMPP_server">Set XMPP server</string>
     <string name="settings_XMPP_server_summary">Set send/receive message server</string>
+    <string name="settings_XMPP_server_summary_set">Set: %1$s</string>
+    <string name="settings_XMPP_server_summary_current">Current: %1$s</string>
 
     <string name="settings_debug">Debug</string>
     <string name="settings_get_log">Get debugging logs</string>
@@ -283,6 +288,29 @@ This could be the application doing a reverse registration, or the registration 
     <string name="last_receive">last receive: </string>
     <string name="mipush_services_not_found">Services Not Found</string>
     <string name="try_to_force_register_all_applications">Try to force register all applications</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_summary">MiPush service overview</string>
+    <string name="dashboard_connection">Connection</string>
+    <string name="dashboard_connection_connected">Connected</string>
+    <string name="dashboard_connection_connecting">Connecting</string>
+    <string name="dashboard_connection_disconnected">Disconnected</string>
+    <string name="dashboard_connection_unknown">Unknown</string>
+    <string name="dashboard_registered_apps">Registered apps</string>
+    <string name="dashboard_last_receive">Last push received</string>
+    <string name="dashboard_recent_push">Pushes in the last 24 hours</string>
+    <string name="dashboard_xmpp_server">XMPP server</string>
+    <string name="dashboard_registration">Registration</string>
+    <string name="dashboard_device_id">devId</string>
+    <string name="dashboard_registration_id">regId</string>
+    <string name="dashboard_value_never">Never</string>
+    <string name="dashboard_value_none">None</string>
+    <string name="dashboard_value_invalid">Invalid</string>
+
+    <!-- Event list, grouped by application -->
+    <string name="event_count">%1$d records</string>
+    <string name="event_list_empty">No records yet.</string>
+    <string name="action_back">Back</string>
 
 
 </resources>

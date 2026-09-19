@@ -3,6 +3,7 @@ package top.trumeet.mipush.provider.db;
 import static top.trumeet.mipush.provider.DatabaseUtils.daoSession;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 
 import androidx.annotation.NonNull;
@@ -17,6 +18,7 @@ import com.xiaomi.xmsf.utils.ConvertUtils;
 import org.greenrobot.greendao.query.QueryBuilder;
 import org.greenrobot.greendao.query.WhereCondition;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -170,6 +172,78 @@ public class EventDb {
         }
         Utils.setLastReceiveTime(packageName, lastReceiveTime);
         return lastReceiveTime;
+    }
+
+    /**
+     * Count the received push messages whose date is not earlier than {@code since}.
+     */
+    public static long countReceivePushSince(long since) {
+        return daoSession.queryBuilder(Event.class)
+                .where(EventDao.Properties.Type.eq(Event.Type.SendMessage))
+                .where(EventDao.Properties.Date.ge(since))
+                .count();
+    }
+
+    /**
+     * The most recently received push message of all packages, or null when there is none.
+     */
+    public static @Nullable Event queryLatestReceivePush() {
+        HashSet<Integer> types = new HashSet<>();
+        types.add(Event.Type.SendMessage);
+        List<Event> events = query(0, 1, types, null, null);
+        return events.isEmpty() ? null : events.get(0);
+    }
+
+    public static class PackageEventGroup {
+        public String pkg;
+        /** How many events of that package the given types cover. */
+        public long count;
+        public long lastDate;
+    }
+
+    /**
+     * One entry per package, newest first. {@code types} filters the events the same way the
+     * per-package list does, so the counts always match what the detail page shows.
+     */
+    public static List<PackageEventGroup> queryPackageGroups(@Nullable Set<Integer> types) {
+        StringBuilder sql = new StringBuilder("SELECT ")
+                .append(EventDao.Properties.Pkg.columnName)
+                .append(", COUNT(*), MAX(")
+                .append(EventDao.Properties.Date.columnName)
+                .append(") FROM ")
+                .append(EventDao.TABLENAME);
+        List<String> arguments = new ArrayList<>();
+        if (types != null && !types.isEmpty()) {
+            sql.append(" WHERE ").append(EventDao.Properties.Type.columnName).append(" IN (");
+            for (int i = 0; i < types.size(); i++) {
+                if (i > 0) {
+                    sql.append(", ");
+                }
+                sql.append("?");
+            }
+            sql.append(")");
+            for (Integer type : types) {
+                arguments.add(String.valueOf(type));
+            }
+        }
+        sql.append(" GROUP BY ").append(EventDao.Properties.Pkg.columnName)
+                .append(" ORDER BY MAX(").append(EventDao.Properties.Date.columnName).append(") DESC");
+
+        List<PackageEventGroup> groups = new ArrayList<>();
+        Cursor cursor = daoSession.getDatabase()
+                .rawQuery(sql.toString(), arguments.toArray(new String[0]));
+        try {
+            while (cursor.moveToNext()) {
+                PackageEventGroup group = new PackageEventGroup();
+                group.pkg = cursor.getString(0);
+                group.count = cursor.getLong(1);
+                group.lastDate = cursor.getLong(2);
+                groups.add(group);
+            }
+        } finally {
+            cursor.close();
+        }
+        return groups;
     }
 
 }

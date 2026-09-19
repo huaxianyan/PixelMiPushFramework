@@ -108,6 +108,7 @@
     <!-- Message when change enable status -->
     <string name="main_apps">应用</string>
     <string name="main_settings">设置</string>
+    <string name="main_dashboard">仪表盘</string>
 
     <!-- About -->
     <string name="action_about">关于</string>
@@ -173,8 +174,12 @@
     <!-- Settings -->
     <string name="settings_summary_service_advance_setting">进入高级配置界面</string>
     <string name="settings_configuration_directory">设置配置目录</string>
+    <string name="settings_configuration_directory_not_set">未设置</string>
+    <string name="settings_volume_internal_storage">内部存储</string>
     <string name="settings_XMPP_server">设置 XMPP 服务器</string>
     <string name="settings_XMPP_server_summary">设置 发送/接收 消息的服务器</string>
+    <string name="settings_XMPP_server_summary_set">已设置：%1$s</string>
+    <string name="settings_XMPP_server_summary_current">当前：%1$s</string>
 
     <string name="settings_get_log">获取日志</string>
     <string name="settings_get_log_summary">点按分享日志，必要时请随 Issue 一起提交。</string>
@@ -265,6 +270,29 @@
     <string name="try_to_force_register_all_applications">尝试强制注册所有应用</string>
     <string name="wizard_title_ignore_battery_optimizations_permission">忽略电池优化</string>
     <string name="wizard_title_ignore_battery_optimizations_text">您需要授予“忽略电池优化”权限，否则您可能将无法在后台运行mipush服务。</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_summary">推送服务概览</string>
+    <string name="dashboard_connection">连接状态</string>
+    <string name="dashboard_connection_connected">已连接</string>
+    <string name="dashboard_connection_connecting">连接中</string>
+    <string name="dashboard_connection_disconnected">未连接</string>
+    <string name="dashboard_connection_unknown">未知</string>
+    <string name="dashboard_registered_apps">已注册应用</string>
+    <string name="dashboard_last_receive">最近接收推送</string>
+    <string name="dashboard_recent_push">最近 24 小时推送</string>
+    <string name="dashboard_xmpp_server">XMPP 服务器</string>
+    <string name="dashboard_registration">注册信息</string>
+    <string name="dashboard_device_id">devId</string>
+    <string name="dashboard_registration_id">regId</string>
+    <string name="dashboard_value_never">从未</string>
+    <string name="dashboard_value_none">无</string>
+    <string name="dashboard_value_invalid">无效</string>
+
+    <!-- Event list, grouped by application -->
+    <string name="event_count">%1$d 条记录</string>
+    <string name="event_list_empty">暂无记录</string>
+    <string name="action_back">返回</string>
 
 
 </resources>

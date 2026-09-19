@@ -42,29 +42,28 @@ public class EventListPageUtils {
         this.context = context;
     }
 
-    static List<Event> getEventsById(@Nullable Long lastId, int size, String packetName, String query) {
-        Set<Integer> types = null;
-        if (!Global.ConfigCenter().isShowAllEvents()) {
-            types = Set.of(
-                    Event.Type.SendMessage,
-                    Event.Type.Registration,
-                    Event.Type.RegistrationResult,
-                    Event.Type.UnRegistration);
+    /**
+     * The event types the list pages show. Null means every type, see the show-all-events switch.
+     * Shared by the per-package list and the per-package counts, so both stay consistent.
+     */
+    static @Nullable Set<Integer> getDisplayTypes() {
+        if (Global.ConfigCenter().isShowAllEvents()) {
+            return null;
         }
-        return EventDb.queryById(lastId, size, types, packetName, query);
+        return Set.of(
+                Event.Type.SendMessage,
+                Event.Type.Registration,
+                Event.Type.RegistrationResult,
+                Event.Type.UnRegistration);
+    }
+
+    static List<Event> getEventsById(@Nullable Long lastId, int size, String packetName, String query) {
+        return EventDb.queryById(lastId, size, getDisplayTypes(), packetName, query);
     }
 
     static List<Event> getEvents(int pageIndex, int pageSize, String packetName, String query) {
-        Set<Integer> types = null;
-        if (!Global.ConfigCenter().isShowAllEvents()) {
-            types = Set.of(
-                    Event.Type.SendMessage,
-                    Event.Type.Registration,
-                    Event.Type.RegistrationResult,
-                    Event.Type.UnRegistration);
-        }
         return EventDb.queryByPage(pageIndex, pageSize,
-                types, packetName, query);
+                getDisplayTypes(), packetName, query);
     }
 
     public static void copyToClipboard(Context context, CharSequence info) {

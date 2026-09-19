@@ -30,54 +30,72 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.xiaomi.xmsf.R
 import top.trumeet.mipushframework.MainPageUtils
 import top.trumeet.mipushframework.component.SearchBar
 import top.trumeet.mipushframework.main.subpage.ApplicationList
 import top.trumeet.mipushframework.main.subpage.ApplicationListPreview
+import top.trumeet.mipushframework.main.subpage.Dashboard
+import top.trumeet.mipushframework.main.subpage.DashboardPreview
 import top.trumeet.mipushframework.main.subpage.EventDetailsDialogPreview
-import top.trumeet.mipushframework.main.subpage.EventList
-import top.trumeet.mipushframework.main.subpage.EventListPreview
+import top.trumeet.mipushframework.main.subpage.PackageEventList
+import top.trumeet.mipushframework.main.subpage.PackageEventListPreview
+import top.trumeet.mipushframework.main.subpage.PackageEventsPage
 import top.trumeet.mipushframework.main.subpage.Settings
 import top.trumeet.mipushframework.main.subpage.SettingsPagePreview
 import top.trumeet.ui.theme.Theme
 
+private const val PackageEventsRoutePrefix = "package_events"
+private const val PackageEventsRoute = "$PackageEventsRoutePrefix/{packageName}"
+private const val PackageNameArgument = "packageName"
+
+private fun packageEventsRoute(packageName: String) = "$PackageEventsRoutePrefix/$packageName"
+
 private val mainPageUtils1 = MainPageUtils()
-private var placeholder by mutableStateOf("Search...")
 
 class MainPage : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        mainPageUtils1.initOnCreate(applicationContext) { placeholder = it.toString() }
+        mainPageUtils1.initOnCreate(applicationContext) { status, host ->
+            ConnectionStatusHolder.update(status, host)
+        }
         setContent {
             Theme {
                 window.navigationBarColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
                     NavigationBarDefaults.Elevation
                 ).toArgb()
             }
-            Main(Screen.Apps.route.toString()) {
-                {
-                    composable(Screen.Events.route.toString()) {
-                        Column {
-                            var query by rememberSaveable { mutableStateOf("") }
-                            SearchBar(placeholder) { query = it }
-                            EventList(query)
-                        }
+            Main(Screen.Dashboard.route.toString()) { navController ->
+                composable(Screen.Dashboard.route.toString()) { Dashboard() }
+                composable(Screen.Events.route.toString()) {
+                    PackageEventList { packageName ->
+                        navController.navigate(packageEventsRoute(packageName))
                     }
-                    composable(Screen.Apps.route.toString()) {
-                        Column {
-                            var query by rememberSaveable { mutableStateOf("") }
-                            SearchBar(placeholder) { query = it }
-                            ApplicationList(query)
-                        }
+                }
+                composable(Screen.Apps.route.toString()) {
+                    Column {
+                        var query by rememberSaveable { mutableStateOf("") }
+                        SearchBar(stringResource(R.string.action_search)) { query = it }
+                        ApplicationList(query)
                     }
-                    composable(Screen.Settings.route.toString()) { Settings() }
+                }
+                composable(Screen.Settings.route.toString()) { Settings() }
+                composable(
+                    route = PackageEventsRoute,
+                    arguments = listOf(navArgument(PackageNameArgument) { type = NavType.StringType })
+                ) { entry ->
+                    PackageEventsPage(
+                        packageName = entry.arguments?.getString(PackageNameArgument).orEmpty(),
+                        onBack = { navController.popBackStack() }
+                    )
                 }
             }
         }
@@ -85,6 +103,9 @@ class MainPage : ComponentActivity() {
 }
 
 private sealed class Screen(val route: Int, val icon: Int) {
+    object Dashboard :
+        Screen(R.string.main_dashboard, R.drawable.ic_dashboard_black_24dp)
+
     object Events : Screen(R.string.main_event, R.drawable.ic_event_note_black_24dp)
     object Apps : Screen(R.string.main_apps, R.drawable.ic_apps_black_24dp)
     object Settings : Screen(R.string.main_settings, R.drawable.ic_settings_black_24dp)
@@ -93,7 +114,7 @@ private sealed class Screen(val route: Int, val icon: Int) {
 @Composable
 fun BottomNavigationBar(navController: NavController) {
     val items = listOf(
-        Screen.Events, Screen.Apps, Screen.Settings
+        Screen.Dashboard, Screen.Events, Screen.Apps, Screen.Settings
     )
 
     NavigationBar(Modifier.height(56.dp)) {
@@ -104,7 +125,9 @@ fun BottomNavigationBar(navController: NavController) {
             val name = stringResource(screen.route)
             NavigationBarItem(
                 icon = { Icon(painterResource(id = screen.icon), contentDescription = name) },
-                selected = currentRoute == screen.route.toString(),
+                selected = currentRoute == screen.route.toString() ||
+                        (screen is Screen.Events &&
+                                currentRoute?.startsWith(PackageEventsRoutePrefix) == true),
                 onClick = {
                     navController.navigate(screen.route.toString()) {
                         popUpTo(navController.graph.startDestinationId) {
@@ -121,7 +144,7 @@ fun BottomNavigationBar(navController: NavController) {
 @Composable
 private fun Main(
     startDestination: String,
-    navContent: () -> NavGraphBuilder.() -> Unit
+    navContent: NavGraphBuilder.(NavController) -> Unit
 ) {
     val navController = rememberNavController()
 
@@ -136,9 +159,10 @@ private fun Main(
             Column(Modifier.weight(1f)) {
                 NavHost(
                     navController = navController,
-                    startDestination = startDestination,
-                    builder = navContent()
-                )
+                    startDestination = startDestination
+                ) {
+                    navContent(navController)
+                }
             }
             BottomNavigationBar(navController)
         }
@@ -150,19 +174,26 @@ private fun Main(
     device = Devices.PIXEL_3,
 )
 @Composable
+private fun MainDashboardPreview() {
+    Main(Screen.Dashboard.route.toString()) {
+        composable(Screen.Dashboard.route.toString()) { DashboardPreview() }
+        composable(Screen.Events.route.toString()) { }
+        composable(Screen.Apps.route.toString()) { }
+        composable(Screen.Settings.route.toString()) { }
+    }
+}
+
+@Preview(
+    showBackground = true,
+    device = Devices.PIXEL_3,
+)
+@Composable
 private fun MainEventsPreview() {
     Main(Screen.Events.route.toString()) {
-        {
-            composable(Screen.Events.route.toString()) {
-                Column {
-                    val onValueChange: (String) -> Unit = {}
-                    SearchBar(placeholder, onValueChange)
-                    EventListPreview()
-                }
-            }
-            composable(Screen.Apps.route.toString()) { }
-            composable(Screen.Settings.route.toString()) { }
-        }
+        composable(Screen.Dashboard.route.toString()) { }
+        composable(Screen.Events.route.toString()) { PackageEventListPreview() }
+        composable(Screen.Apps.route.toString()) { }
+        composable(Screen.Settings.route.toString()) { }
     }
 }
 
@@ -173,17 +204,16 @@ private fun MainEventsPreview() {
 @Composable
 private fun MainAppsPreview() {
     Main(Screen.Apps.route.toString()) {
-        {
-            composable(Screen.Events.route.toString()) { }
-            composable(Screen.Apps.route.toString()) {
-                Column {
-                    val onValueChange: (String) -> Unit = {}
-                    SearchBar(placeholder, onValueChange)
-                    ApplicationListPreview()
-                }
+        composable(Screen.Dashboard.route.toString()) { }
+        composable(Screen.Events.route.toString()) { }
+        composable(Screen.Apps.route.toString()) {
+            Column {
+                val onValueChange: (String) -> Unit = {}
+                SearchBar(stringResource(R.string.action_search), onValueChange)
+                ApplicationListPreview()
             }
-            composable(Screen.Settings.route.toString()) { }
         }
+        composable(Screen.Settings.route.toString()) { }
     }
 }
 
@@ -194,11 +224,10 @@ private fun MainAppsPreview() {
 @Composable
 private fun MainSettingsPreview() {
     Main(Screen.Settings.route.toString()) {
-        {
-            composable(Screen.Events.route.toString()) { }
-            composable(Screen.Apps.route.toString()) { }
-            composable(Screen.Settings.route.toString()) { SettingsPagePreview() }
-        }
+        composable(Screen.Dashboard.route.toString()) { }
+        composable(Screen.Events.route.toString()) { }
+        composable(Screen.Apps.route.toString()) { }
+        composable(Screen.Settings.route.toString()) { SettingsPagePreview() }
     }
 }
 
@@ -209,12 +238,9 @@ private fun MainSettingsPreview() {
 @Composable
 private fun MainDialogPreview() {
     Main(Screen.Events.route.toString()) {
-        {
-            composable(Screen.Events.route.toString()) {
-                EventDetailsDialogPreview()
-            }
-            composable(Screen.Apps.route.toString()) { }
-            composable(Screen.Settings.route.toString()) { }
-        }
+        composable(Screen.Dashboard.route.toString()) { }
+        composable(Screen.Events.route.toString()) { EventDetailsDialogPreview() }
+        composable(Screen.Apps.route.toString()) { }
+        composable(Screen.Settings.route.toString()) { }
     }
 }

@@ -35,6 +35,7 @@ import top.trumeet.mipushframework.component.SettingsGroup
 import top.trumeet.mipushframework.component.SettingsItem
 import top.trumeet.mipushframework.main.AdvancedSettingsPage
 import top.trumeet.mipushframework.main.HelpPage
+import top.trumeet.mipushframework.utils.ConfigurationDirectoryUtils
 import top.trumeet.ui.theme.Theme
 
 @Composable
@@ -98,9 +99,14 @@ private fun SetXMPPServer(context: Context) {
     }
     var text by remember { mutableStateOf(SettingUtils.getXMPPServer(context) ?: "") }
     SettingsItem(title = stringResource(R.string.settings_XMPP_server),
-        summary = stringResource(R.string.settings_XMPP_server_summary) +
-                "\nSet: [${SettingUtils.getXMPPServer(context) ?: ""}]" +
-                "\nCurrent: [$currentXMPPServer]",
+        summary = listOf(
+            stringResource(R.string.settings_XMPP_server_summary),
+            stringResource(
+                R.string.settings_XMPP_server_summary_set,
+                SettingUtils.getXMPPServer(context) ?: ""
+            ),
+            stringResource(R.string.settings_XMPP_server_summary_current, currentXMPPServer)
+        ).joinToString("\n"),
         confirmButton = { dismiss: () -> Unit ->
             TextButton(onClick = {
                 SettingUtils.setXMPPServer(context, text)
@@ -144,7 +150,7 @@ private fun SetConfigurationsDirectory() {
     }
     SettingsItem(
         title = stringResource(R.string.settings_configuration_directory),
-        summary = selectedDirectoryUri?.toString()
+        summary = ConfigurationDirectoryUtils.displayName(context, selectedDirectoryUri)
     ) {
         openDocumentTreeLauncher.launch(null) // 启动文件选择器
     }
