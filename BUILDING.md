@@ -2,7 +2,7 @@
 
 ## 当前范围
 
-这一批只迁移构建链路，不代表 Android 16 运行适配已经完成。
+构建链路与界面改造均已完成。本仓库自 1.0.0 起启用独立版本线，不再沿用上游的 0.3.x 编号；`targetSdk` 仍留在 30，用于隔离系统行为变化。
 
 | 项目 | 当前配置 |
 |---|---|
@@ -146,12 +146,22 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 - D8 转换仍出现旧 SDK 缺少 StackMap 表的告警，未屏蔽，也未用 `-noverify` 绕过 APK 构建
 - `targetSdk` 暂留 30，用于隔离构建变化与 Android 系统行为变化
 
+## 版本号
+
+对外版本号（`versionName`）与 `versionCode` 是两件事，不要混淆。
+
+- `versionName` 由标签推导：`git describe --tags --dirty --exclude 'v*-*'` 取最近的标签，`v1.0.0` 得到 `1.0.0`。本地没有标签时必须用 `-PversionName=` 覆盖，否则兜底成 `VersionNameError`。值里含 `-` 会被 `increaseVersionForPreRelease()` 把第三段加一，正式标签不要带后缀。
+- 工作区不干净时 `--dirty` 会给标签加后缀，同样触发上面那个加一。打标签前先确认 `git status` 干净。
+- `versionCode` 固定为 `1003003000`（vc105 变体为 105）。它是给接入方 SDK 看的伪装版本号，SDK 要求不低于 105，与对外版本号无关，不随版本号递增。
+
+每个标签对应一份 `docs/release-notes/<tag>.md`，发布工作流优先使用它，找不到才退回 GitHub 自动生成的说明。
+
 ## CI 与发布
 
 `test_ci.yml` 不带任何签名密钥，构建未签名的 normal Release APK 和 hook AAR，检查最终产物，只上传 JSON 报告，不上传 SDK 二进制或 APK，也不创建 Release。GitHub CI 尚未实跑。
 
-`release.yml` 只在推送 `v*` 标签或手动指定标签时运行：解码 `MIPUSH_KEYSTORE_BASE64`，构建 normal 与 vc105 两个签名 APK，用 apksigner 核对证书 SHA-256 与 v2 方案，通过后上传工作流产物并创建 GitHub Release。证书不匹配或产物缺失时直接失败，不发布。
+`release.yml` 只在推送 `v*` 标签或手动指定标签时运行：解码 `MIPUSH_KEYSTORE_BASE64`，构建 normal 与 vc105 两个签名 APK，用 apksigner 核对证书 SHA-256 与 v2 方案，通过后上传工作流产物并创建 GitHub Release，发布说明取自 `docs/release-notes/<tag>.md`。证书不匹配或产物缺失时直接失败，不发布。
 
 Debug 使用 Android 插件的标准开发签名配置。历史 `.yuuta.jks`、环境变量和 `local.properties` 签名读取逻辑已移除，Release 不复用 Debug 密钥，也不复用 Pixel MiPush 模块密钥。
 
-没有 Git 标签的本地工作树可显式传入 `-PversionName=build-check`，它仅是验证版本标识。公开发布前仍须完成来源与许可核验和设备验收。
+没有 Git 标签的本地工作树可显式传入 `-PversionName=build-check`，它仅是验证版本标识。正式发布走标签：推 `v1.0.0` 得到版本号 `1.0.0`，并触发发布工作流。
