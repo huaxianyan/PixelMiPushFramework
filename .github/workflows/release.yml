@@ -109,9 +109,20 @@ jobs:
           TAG: ${{ steps.release_tag.outputs.name }}
         run: |
           apks=$(find push/build/outputs/apk -name '*-release.apk' | sort)
+          # The release notes live in the repository, one file per tag. Only
+          # fall back to GitHub's generated notes when this tag has no file.
+          notes="docs/release-notes/$TAG.md"
+          if [ -f "$notes" ]; then
+            notes_args=(--notes-file "$notes")
+            echo "release notes: $notes"
+          else
+            notes_args=(--generate-notes)
+            echo "no notes file for $TAG, generating from the commit history"
+          fi
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" "${notes_args[@]}"
             gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber $apks
           else
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
-              --title "$TAG" --generate-notes $apks
+              --title "$TAG" "${notes_args[@]}" $apks
           fi
