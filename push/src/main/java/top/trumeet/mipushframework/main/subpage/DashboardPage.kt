@@ -93,7 +93,7 @@ fun Dashboard() {
             isNeedRefresh,
             verticalArrangement = Arrangement.spacedBy(Layout.CardGap)
         ) {
-            item { ConnectionCard(ConnectionStatusHolder.status, PushServiceTimeline.connectedSince, now) }
+            item { ConnectionCard(ConnectionStatusHolder.status) }
             item { CountersRow(info) }
             item {
                 SettingsGroup(title = stringResource(R.string.dashboard_group_service)) {
@@ -149,7 +149,7 @@ private fun lastReceiveText(info: DashboardPageOperation.DashboardInfo?): String
  * down, and repeating it here only made the two disagree when the connection was moving.
  */
 @Composable
-private fun ConnectionCard(status: ConnectionStatus?, connectedSince: Long?, now: Long) {
+private fun ConnectionCard(status: ConnectionStatus?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -176,16 +176,6 @@ private fun ConnectionCard(status: ConnectionStatus?, connectedSince: Long?, now
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold
                 )
-                if (status == ConnectionStatus.connected && connectedSince != null) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        stringResource(
-                            R.string.dashboard_connection_since,
-                            formatDuration(LocalContext.current, now - connectedSince)
-                        ),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
             }
         }
     }
@@ -261,11 +251,10 @@ private fun connectionLabel(status: ConnectionStatus?): Int = when (status) {
 @Composable
 fun DashboardPreview() {
     val context = LocalContext.current
-    val now = System.currentTimeMillis()
     Utils.context = context
     Page {
         PageColumn {
-            ConnectionCard(ConnectionStatus.connected, now - 19L * 3_600_000L, now)
+            ConnectionCard(ConnectionStatus.connected)
             CountersRow(null)
             SettingsGroup(title = stringResource(R.string.dashboard_group_service)) {
                 ServiceRow(stringResource(R.string.dashboard_xmpp_server), "mtalk.google.com:5222")

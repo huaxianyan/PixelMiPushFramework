@@ -269,7 +269,6 @@ This usually means the application registered and then unregistered again — tu
     <string name="dashboard_recent_push">Pushes in the last 24 hours</string>
     <string name="dashboard_xmpp_server">XMPP server</string>
     <string name="dashboard_service_uptime">Service uptime</string>
-    <string name="dashboard_connection_since">Connected for %1$s</string>
     <string name="dashboard_value_never">Never</string>
     <string name="dashboard_value_none">None</string>
 

@@ -247,7 +247,6 @@
     <string name="dashboard_recent_push">最近 24 小时推送</string>
     <string name="dashboard_xmpp_server">XMPP 服务器</string>
     <string name="dashboard_service_uptime">服务运行时长</string>
-    <string name="dashboard_connection_since">已连接 %1$s</string>
     <string name="dashboard_value_never">从未</string>
     <string name="dashboard_value_none">无</string>
 
