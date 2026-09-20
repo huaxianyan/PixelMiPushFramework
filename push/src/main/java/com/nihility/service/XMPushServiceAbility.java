@@ -33,6 +33,7 @@ public class XMPushServiceAbility extends XMPushServiceListenerNotifier {
         addListener(new ForegroundAbility(new ForegroundHelper(pushService)));
         addListener(new MessengerAbility(new XMPushServiceMessenger(pushService)));
         addListener(new ConnectingTimeoutAbility(pushService));
+        addListener(new ServiceTimelineAbility());
         if (SDK_INT > P) {
             addListener(new XMPushServiceListener() {
                 @Override

@@ -246,12 +246,16 @@
     <string name="dashboard_last_receive">最近接收推送</string>
     <string name="dashboard_recent_push">最近 24 小时推送</string>
     <string name="dashboard_xmpp_server">XMPP 服务器</string>
-    <string name="dashboard_registration">注册信息</string>
-    <string name="dashboard_device_id">devId</string>
-    <string name="dashboard_registration_id">regId</string>
+    <string name="dashboard_service_uptime">服务运行时长</string>
+    <string name="dashboard_connection_since">已连接 %1$s</string>
     <string name="dashboard_value_never">从未</string>
     <string name="dashboard_value_none">无</string>
-    <string name="dashboard_value_invalid">无效</string>
+
+    <!-- 时长，取最有意义的两个单位 -->
+    <string name="duration_days_hours">%1$d 天 %2$d 小时</string>
+    <string name="duration_hours_minutes">%1$d 小时 %2$d 分</string>
+    <string name="duration_minutes">%1$d 分</string>
+    <string name="duration_seconds">%1$d 秒</string>
 
     <!-- Event list, grouped by application -->
     <string name="event_count">%1$d 条记录</string>

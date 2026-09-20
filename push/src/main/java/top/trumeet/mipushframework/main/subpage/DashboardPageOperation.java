@@ -1,12 +1,10 @@
 package top.trumeet.mipushframework.main.subpage;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.xiaomi.mipush.sdk.AppInfoHolder;
 import com.xiaomi.xmsf.SettingUtils;
 
 import top.trumeet.common.utils.Utils;
@@ -15,17 +13,15 @@ import top.trumeet.mipush.provider.entities.Event;
 
 /**
  * Collects everything the dashboard shows. Meant to run off the main thread.
+ *
+ * <p>The device and registration identifiers used to be read here and shown on the page. They are
+ * gone: they identify the device rather than tell the user anything actionable, the dashboard is
+ * the first screen anyone opens, and a screenshot would carry them off as-is. What replaced them
+ * are the two durations, which say the same thing about the link's health without naming anything.
  */
 public class DashboardPageOperation {
 
     private static final long ONE_DAY_MS = 24L * 60L * 60L * 1000L;
-
-    /**
-     * Keys inside the preferences returned by {@link AppInfoHolder#getSharedPreferences(Context)}.
-     * The SDK declares its own {@code PREF_KEY_*} constants private, these are their values.
-     */
-    private static final String PREF_KEY_DEVICE_ID = "devId";
-    private static final String PREF_KEY_REG_ID = "regId";
 
     public static class DashboardInfo {
         public int registeredAppCount;
@@ -33,8 +29,6 @@ public class DashboardPageOperation {
         public long lastReceiveTime;
         public long recentPushCount;
         public @Nullable String storedXmppServer;
-        public @Nullable String deviceId;
-        public @Nullable String registrationId;
     }
 
     public static @NonNull DashboardInfo load(Context context) {
@@ -47,10 +41,6 @@ public class DashboardPageOperation {
         info.recentPushCount = EventDb.countReceivePushSince(Utils.getUTC().getTime() - ONE_DAY_MS);
 
         info.storedXmppServer = SettingUtils.getXMPPServer(context);
-
-        SharedPreferences preferences = AppInfoHolder.getSharedPreferences(context);
-        info.deviceId = preferences.getString(PREF_KEY_DEVICE_ID, null);
-        info.registrationId = preferences.getString(PREF_KEY_REG_ID, null);
         return info;
     }
 }

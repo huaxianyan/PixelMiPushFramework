@@ -268,12 +268,16 @@ This usually means the application registered and then unregistered again — tu
     <string name="dashboard_last_receive">Last push received</string>
     <string name="dashboard_recent_push">Pushes in the last 24 hours</string>
     <string name="dashboard_xmpp_server">XMPP server</string>
-    <string name="dashboard_registration">Registration</string>
-    <string name="dashboard_device_id">devId</string>
-    <string name="dashboard_registration_id">regId</string>
+    <string name="dashboard_service_uptime">Service uptime</string>
+    <string name="dashboard_connection_since">Connected for %1$s</string>
     <string name="dashboard_value_never">Never</string>
     <string name="dashboard_value_none">None</string>
-    <string name="dashboard_value_invalid">Invalid</string>
+
+    <!-- Durations, rendered as the two coarsest units that carry meaning -->
+    <string name="duration_days_hours">%1$dd %2$dh</string>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="duration_minutes">%1$dm</string>
+    <string name="duration_seconds">%1$ds</string>
 
     <!-- Event list, grouped by application -->
     <string name="event_count">%1$d records</string>

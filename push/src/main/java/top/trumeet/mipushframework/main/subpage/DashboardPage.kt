@@ -1,5 +1,6 @@
 package top.trumeet.mipushframework.main.subpage
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,7 +14,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -24,13 +27,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.nihility.service.PushServiceTimeline
 import com.nihility.service.XMPushServiceListener.ConnectionStatus
 import com.xiaomi.xmsf.R
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.trumeet.common.utils.Utils
@@ -47,6 +51,9 @@ import java.util.Date
 
 private val UnknownColor = Color(0xFF9E9E9E)
 
+/** How often the two durations on this page are recomputed while it is on screen. */
+private const val DurationTickMillis = 30_000L
+
 @Composable
 fun Dashboard() {
     val context = LocalContext.current
@@ -55,6 +62,9 @@ fun Dashboard() {
     // restoring a saved "already loaded" flag would leave the page empty forever
     // after the tab is left and entered again.
     var isNeedRefresh by remember { mutableStateOf(true) }
+    // The durations come from plain fields rather than Compose state, so nothing would recompose
+    // them on its own — they would sit frozen at whatever they read when the page was opened.
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     val refreshScope = rememberCoroutineScope { Dispatchers.IO }
     val onRefresh: (onRefreshed: () -> Unit) -> Unit = { onRefreshed ->
@@ -68,6 +78,13 @@ fun Dashboard() {
         }
     }
 
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(DurationTickMillis)
+            now = System.currentTimeMillis()
+        }
+    }
+
     Page {
         RefreshableLazyColumn(
             onRefresh,
@@ -76,7 +93,7 @@ fun Dashboard() {
             isNeedRefresh,
             verticalArrangement = Arrangement.spacedBy(Layout.CardGap)
         ) {
-            item { ConnectionCard(ConnectionStatusHolder.status) }
+            item { ConnectionCard(ConnectionStatusHolder.status, PushServiceTimeline.connectedSince, now) }
             item { CountersRow(info) }
             item {
                 SettingsGroup(title = stringResource(R.string.dashboard_group_service)) {
@@ -88,19 +105,30 @@ fun Dashboard() {
                         label = stringResource(R.string.dashboard_last_receive),
                         value = lastReceiveText(info)
                     )
-                }
-            }
-            item {
-                SettingsGroup(title = stringResource(R.string.dashboard_registration)) {
-                    CredentialRow(stringResource(R.string.dashboard_device_id), info?.deviceId, info != null)
-                    CredentialRow(
-                        stringResource(R.string.dashboard_registration_id),
-                        info?.registrationId,
-                        info != null
+                    ServiceRow(
+                        label = stringResource(R.string.dashboard_service_uptime),
+                        value = PushServiceTimeline.serviceStartedAt?.let { formatDuration(context, now - it) }
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * Renders a span as the two coarsest units that carry meaning: "3 天 4 小时", "19 小时 42 分",
+ * "5 分" — never a bare "10 小时 0 分 0 秒".
+ */
+private fun formatDuration(context: Context, millis: Long): String {
+    val seconds = (millis / 1000).coerceAtLeast(0L)
+    val days = seconds / 86_400
+    val hours = seconds % 86_400 / 3_600
+    val minutes = seconds % 3_600 / 60
+    return when {
+        days > 0 -> context.getString(R.string.duration_days_hours, days, hours)
+        hours > 0 -> context.getString(R.string.duration_hours_minutes, hours, minutes)
+        minutes > 0 -> context.getString(R.string.duration_minutes, minutes)
+        else -> context.getString(R.string.duration_seconds, seconds)
     }
 }
 
@@ -121,7 +149,7 @@ private fun lastReceiveText(info: DashboardPageOperation.DashboardInfo?): String
  * down, and repeating it here only made the two disagree when the connection was moving.
  */
 @Composable
-private fun ConnectionCard(status: ConnectionStatus?) {
+private fun ConnectionCard(status: ConnectionStatus?, connectedSince: Long?, now: Long) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -148,6 +176,16 @@ private fun ConnectionCard(status: ConnectionStatus?) {
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold
                 )
+                if (status == ConnectionStatus.connected && connectedSince != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(
+                            R.string.dashboard_connection_since,
+                            formatDuration(LocalContext.current, now - connectedSince)
+                        ),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
     }
@@ -205,28 +243,6 @@ private fun ServiceRow(label: String, value: String?) {
     )
 }
 
-@Composable
-private fun CredentialRow(label: String, value: String?, loaded: Boolean) {
-    val valid = !value.isNullOrEmpty()
-    val text = when {
-        !loaded -> stringResource(R.string.dashboard_value_none)
-        valid -> value!!
-        else -> stringResource(R.string.dashboard_value_invalid)
-    }
-    SettingsRow(
-        title = label,
-        summary = text,
-        colors = androidx.compose.material3.ListItemDefaults.colors(
-            containerColor = Color.Transparent,
-            supportingColor = when {
-                !loaded -> MaterialTheme.colorScheme.onSurfaceVariant
-                valid -> MaterialTheme.colorScheme.onSurface
-                else -> RegistrationStateStyle.ErrorColor
-            }
-        )
-    )
-}
-
 private fun connectionColor(status: ConnectionStatus?): Color = when (status) {
     ConnectionStatus.connected -> RegistrationStateStyle.GreenColor
     ConnectionStatus.connecting -> RegistrationStateStyle.YellowColor
@@ -244,18 +260,20 @@ private fun connectionLabel(status: ConnectionStatus?): Int = when (status) {
 @Preview(showBackground = true, device = Devices.PIXEL_3, showSystemUi = true)
 @Composable
 fun DashboardPreview() {
-    Utils.context = LocalContext.current
+    val context = LocalContext.current
+    val now = System.currentTimeMillis()
+    Utils.context = context
     Page {
         PageColumn {
-            ConnectionCard(ConnectionStatus.connected)
+            ConnectionCard(ConnectionStatus.connected, now - 19L * 3_600_000L, now)
             CountersRow(null)
             SettingsGroup(title = stringResource(R.string.dashboard_group_service)) {
                 ServiceRow(stringResource(R.string.dashboard_xmpp_server), "mtalk.google.com:5222")
                 ServiceRow(stringResource(R.string.dashboard_last_receive), null)
-            }
-            SettingsGroup(title = stringResource(R.string.dashboard_registration)) {
-                CredentialRow(stringResource(R.string.dashboard_device_id), null, false)
-                CredentialRow(stringResource(R.string.dashboard_registration_id), null, false)
+                ServiceRow(
+                    stringResource(R.string.dashboard_service_uptime),
+                    formatDuration(context, 3L * 86_400_000L + 4L * 3_600_000L)
+                )
             }
         }
     }
