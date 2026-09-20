@@ -10,6 +10,7 @@ import com.elvishew.xlog.printer.file.backup.NeverBackupStrategy;
 import com.elvishew.xlog.printer.file.clean.FileLastModifiedCleanStrategy;
 import com.elvishew.xlog.printer.file.naming.DateFileNameGenerator;
 import com.xiaomi.xmsf.utils.LogUtils;
+import com.xiaomi.xmsf.utils.RedactingPrinter;
 
 import top.trumeet.common.utils.Utils;
 
@@ -23,7 +24,9 @@ public class CrashHandler {
     public static void installCrashLogger() {
         final String TAG = CrashHandler.class.getSimpleName();
         final Logger logger = XLog.tag(TAG).build();
-        final Logger crashLogger = XLog.tag(TAG).printers(createCrashPrinter()).build();
+        // Crash reports land in the same log folder that gets exported, so they are redacted too.
+        final Logger crashLogger = XLog.tag(TAG)
+                .printers(new RedactingPrinter(createCrashPrinter())).build();
 
         install((t, e) -> {
             StringBuilder crashInfo = new StringBuilder();

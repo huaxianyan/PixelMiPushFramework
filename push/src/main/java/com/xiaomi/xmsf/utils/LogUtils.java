@@ -58,7 +58,12 @@ public class LogUtils {
                 .cleanStrategy(new FileLastModifiedCleanStrategy(_7DaysInMillis))
                 .flattener(new ClassicFlattener())
                 .build();
-        XLog.init(configuration, androidPrinter, filePrinter);
+        // Both sinks are wrapped: the SDK logs whole protocol messages, and the registration
+        // response carries regSecret — the key that decrypts downstream messages — in clear text.
+        // See RedactingPrinter for what exactly is rewritten.
+        XLog.init(configuration,
+                new RedactingPrinter(androidPrinter),
+                new RedactingPrinter(filePrinter));
     }
 
     public static String getLogFolder(@NonNull Context context) {
