@@ -34,6 +34,24 @@ def descriptor(name):
     return 'L' + name.replace('.', '/') + ';'
 
 
+def expected_sdks():
+    """Read the SDK levels from the root build script instead of repeating them.
+
+    They were hard-coded here once, and the assertion went stale the moment a later
+    batch raised minSdk from 21 to 23: the value lives one directory up, so the copy
+    is what silently rots.
+    """
+    text = (ROOT / 'build.gradle').read_text(encoding='utf-8')
+
+    def level(name):
+        match = re.search(r'%s\s*=\s*(\d+)' % name, text)
+        if not match:
+            raise ValueError('Cannot read %s from the root build script' % name)
+        return match.group(1)
+
+    return level('minSdkVersion'), level('targetSdkVersion')
+
+
 def verify(apk, tools):
     def tool(name, *args):
         executable = tools / (name + ('.exe' if os.name == 'nt' else ''))
@@ -44,8 +62,13 @@ def verify(apk, tools):
     package = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging)
     if not package or package.group(1, 2) != ('com.xiaomi.xmsf', '1003003000'):
         raise ValueError('Package identity or normal variant versionCode changed')
-    if "minSdkVersion:'21'" not in badging or "targetSdkVersion:'30'" not in badging:
-        raise ValueError('Unexpected minSdk or targetSdk for the build migration')
+    min_sdk, target_sdk = expected_sdks()
+    if (f"minSdkVersion:'{min_sdk}'" not in badging
+            or f"targetSdkVersion:'{target_sdk}'" not in badging):
+        raise ValueError(
+            f'Unexpected minSdk or targetSdk: expected {min_sdk}/{target_sdk} '
+            f'as declared in build.gradle'
+        )
     if 'application-debuggable' in badging:
         raise ValueError('Expected a non-debuggable Release APK')
     manifest = tool('aapt2', 'dump', 'xmltree', apk, '--file', 'AndroidManifest.xml')
@@ -122,7 +145,7 @@ def verify(apk, tools):
     return {
         'apk': str(apk), 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest(),
         'package': package.group(1), 'version_code': int(package.group(2)),
-        'version_name': package.group(3), 'min_sdk': 21, 'target_sdk': 30,
+        'version_name': package.group(3), 'min_sdk': int(min_sdk), 'target_sdk': int(target_sdk),
         'unsigned': True, 'alignment_verified': True, 'native_libraries': native,
         'dex': dex_reports, 'classes': len(all_classes), 'sdk_classes_retained': len(sdk_classes),
         'manifest_components_present': len(components), 'aspects_with_code': len(ASPECTS),

@@ -158,9 +158,27 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 
 ## CI 与发布
 
-`test_ci.yml` 不带任何签名密钥，构建未签名的 normal Release APK 和 hook AAR，检查最终产物，只上传 JSON 报告，不上传 SDK 二进制或 APK，也不创建 Release。GitHub CI 尚未实跑。
+`test_ci.yml` 不带任何签名密钥，构建未签名的 normal Release APK 和 hook AAR，检查最终产物，只上传 JSON 报告，不上传 SDK 二进制或 APK，也不创建 Release。已在 GitHub 实跑。
 
-`release.yml` 只在推送 `v*` 标签或手动指定标签时运行：解码 `MIPUSH_KEYSTORE_BASE64`，构建 normal 与 vc105 两个签名 APK，用 apksigner 核对证书 SHA-256 与 v2 方案，通过后上传工作流产物并创建 GitHub Release，发布说明取自 `docs/release-notes/<tag>.md`。证书不匹配或产物缺失时直接失败，不发布。
+`release.yml` 只在推送 `v*` 标签或手动指定标签时运行：解码 `MIPUSH_KEYSTORE_BASE64`，构建 normal 与 vc105 两个签名 APK，用 apksigner 核对证书 SHA-256 与 v2 方案，通过后直接创建 GitHub Release，并把两个 APK 作为 Release 附件上传，发布说明取自 `docs/release-notes/<tag>.md`。证书不匹配或产物缺失时直接失败，不发布。
+
+`verify_apk_artifact.py` 校验的 minSdk 与 targetSdk 从根 `build.gradle` 读取，不再写死在脚本里。它们原先被复制了一份，界面批次把 minSdk 从 21 提到 23 之后那份副本就过期了，校验一直失败在最早的一步，后面那些检查根本没跑到。
+
+### 本地复现未签名产物校验
+
+`verify_apk_artifact.py` 只接受未签名 APK，而本机存在签名密钥时 release 一律是签名产物，直接跑会停在签名检查。复现 CI 的做法是临时移开属性文件再构建：
+
+```bash
+mv "$HOME/.gradle/mipushframework-signing.properties" "$HOME/.gradle/mipushframework-signing.properties.bak"
+./gradlew :push:assembleNormalRelease -PversionName=build-verify
+mv "$HOME/.gradle/mipushframework-signing.properties.bak" "$HOME/.gradle/mipushframework-signing.properties"
+python scripts/verify_apk_artifact.py push/build/outputs/apk/normal/release/*-unsigned.apk \
+    --build-tools "$ANDROID_HOME/build-tools/36.0.0"
+```
+
+`android {}` 里签名是按 `releaseKeystore != null` 条件赋值的，属性文件缺失时 `buildTypes.release` 根本不引用 `signingConfigs.release`，产物自动退回 `-unsigned` 命名。
+
+不要改用 init script 在 `afterEvaluate` 里把 `buildTypes.release.signingConfig` 置空：AGP 在此之前已经定型了 variant，DSL 上读到 `null` 也不生效，产物照样带签名，只会白跑一轮构建。
 
 Debug 使用 Android 插件的标准开发签名配置。历史 `.yuuta.jks`、环境变量和 `local.properties` 签名读取逻辑已移除，Release 不复用 Debug 密钥，也不复用 Pixel MiPush 模块密钥。
 
