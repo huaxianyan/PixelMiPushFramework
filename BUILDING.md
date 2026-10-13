@@ -125,14 +125,14 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 
 | 来源 | 内容 |
 |---|---|
-| 本机 `%USERPROFILE%\.gradle\mipushframework-signing.properties` | `storeFile`／`storePassword`／`keyAlias`／`keyPassword` |
+| 本机属性文件，位置见本地 `AGENTS.md` | `storeFile`／`storePassword`／`keyAlias`／`keyPassword` |
 | CI 环境变量 | `MIPUSH_KEYSTORE_FILE`／`MIPUSH_KEYSTORE_PASSWORD`／`MIPUSH_KEY_ALIAS`／`MIPUSH_KEY_PASSWORD` |
 
 环境变量优先于属性文件。四项缺任意一项时不启用签名，release 停在未签名状态，本地构建和验证工作流都不会因此失败；四个值齐备但文件不存在则直接报错，避免静默改用别的产物。
 
 启用签名时开启 v1、v2、v3 三种方案，覆盖 minSdk 23 到目标系统。
 
-密钥为 PKCS12、RSA 4096、SHA256withRSA，别名 `mipushframework`，主体 `CN=MiPushFramework, OU=Android Signing, O=NeKo7inA`，有效期 36500 天。证书 SHA-256 与恢复步骤见 NAS 备份目录 `\\192.168.7.216\homes\NeKo7inA\dev\Android Signing\MiPushFramework\`。
+密钥为 PKCS12、RSA 4096、SHA256withRSA，别名 `mipushframework`，主体 `CN=MiPushFramework, OU=Android Signing, O=NeKo7inA`，有效期 36500 天。证书 SHA-256 与恢复步骤见本地 `AGENTS.md` 中的签名资料入口。
 
 换签名后无法覆盖安装设备上现有的 `com.xiaomi.xmsf`，卸载会清空事件库与注册状态。这一步需要单独确认，不在本批范围。
 
@@ -142,7 +142,7 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 - `com.nihility.XMPushUtils` 属于应用模块，库织入时不可见。没有为了消除告警开启应用层织入
 - Jetifier 为 AspectJ 运行时重命名后，AJC 可能报告无法识别 `aspectjrt.jar`，解析后的类路径实际包含对应版本。保留告警，不以日志无告警作为验收条件
 - 旧 API、Compose 和 SDK XML 版本告警尚未全部处理
-- normal Release 已完成 D8／打包及静态检查，签名产物已用 apksigner 核对证书与签名方案；ART、设备运行和真实推送仍未验证
+- 构建现代化批次完成了 D8／打包、静态检查和签名核对。该批次没有验证 ART、设备运行或真实推送。后续单设备验收的历史结论与限制见 [交接记录](docs/STATUS.md)
 - D8 转换仍出现旧 SDK 缺少 StackMap 表的告警，未屏蔽，也未用 `-noverify` 绕过 APK 构建
 - `targetSdk` 暂留 30，用于隔离构建变化与 Android 系统行为变化
 
@@ -166,12 +166,10 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 
 ### 本地复现未签名产物校验
 
-`verify_apk_artifact.py` 只接受未签名 APK，而本机存在签名密钥时 release 一律是签名产物，直接跑会停在签名检查。复现 CI 的做法是临时移开属性文件再构建：
+`verify_apk_artifact.py` 只接受未签名 APK，而本机存在签名密钥时 release 一律是签名产物，直接跑会停在签名检查。复现 CI 时，按本地 `AGENTS.md` 定位签名属性文件，临时移开后构建。用异常清理机制保证原文件在成功、失败或取消后恢复，再验证未签名产物：
 
 ```bash
-mv "$HOME/.gradle/mipushframework-signing.properties" "$HOME/.gradle/mipushframework-signing.properties.bak"
 ./gradlew :push:assembleNormalRelease -PversionName=build-verify
-mv "$HOME/.gradle/mipushframework-signing.properties.bak" "$HOME/.gradle/mipushframework-signing.properties"
 python scripts/verify_apk_artifact.py push/build/outputs/apk/normal/release/*-unsigned.apk \
     --build-tools "$ANDROID_HOME/build-tools/36.0.0"
 ```

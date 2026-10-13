@@ -98,7 +98,7 @@
 
 ## 参与项目
 
-参见 [Contribution Guideline](CONTRIBUTION.md)。构建与发布流程见 [BUILDING.md](BUILDING.md)。
+参见 [Contribution Guideline](CONTRIBUTION.md)。构建与发布流程见 [BUILDING.md](BUILDING.md)，当前主线、历史验收边界和下一步见 [交接记录](docs/STATUS.md)。
 
 ## 已知问题
 
