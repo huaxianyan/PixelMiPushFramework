@@ -53,6 +53,16 @@
 - 跟着向导完成权限设置
 - 可选：开启高级配置里的「推送服务保活」
 
+### 通过 Obtainium 安装与更新
+
+先安装 [Obtainium](https://obtainium.imranr.dev/)，再点击下方按钮导入本项目。入口跟踪正式版本，只选择 `normal` 的 APK，`vc105` 仍需手动选择。
+
+[<img src="images/obtainium-badge.png" alt="通过 Obtainium 获取 Pixel MiPushFramework" height="48">][obtainium]
+
+此入口适用于采用新命名规则的后续版本。首次从其他签名的框架切换时，请先备份配置并确认迁移方案。
+
+[obtainium]: https://apps.obtainium.imranr.dev/redirect?r=obtainium%3A%2F%2Fapp%2F%257B%2522id%2522%253A%2522com.xiaomi.xmsf%2522%252C%2522url%2522%253A%2522https%253A%2F%2Fgithub.com%2Fhuaxianyan%2FPixelMiPushFramework%2522%252C%2522author%2522%253A%2522huaxianyan%2522%252C%2522name%2522%253A%2522Pixel%2520MiPushFramework%2522%252C%2522additionalSettings%2522%253A%2522%257B%255C%2522apkFilterRegEx%255C%2522%253A%255C%2522%255EPixelMiPushFramework-normal-universal-.%252A%255C%255C%255C%255C.apk%2524%255C%2522%252C%255C%2522includePrereleases%255C%2522%253Afalse%252C%255C%2522versionDetection%255C%2522%253Atrue%252C%255C%2522appName%255C%2522%253A%255C%2522Pixel%2520MiPushFramework%255C%2522%257D%2522%257D
+
 ### 常见问题
 
 **为什么包名是 `com.xiaomi.xmsf`，跟应用名对不上？**

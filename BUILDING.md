@@ -150,17 +150,19 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 
 对外版本号（`versionName`）与 `versionCode` 是两件事，不要混淆。
 
-- `versionName` 由标签推导：`git describe --tags --dirty --exclude 'v*-*'` 取最近的标签，`v1.0.0` 得到 `1.0.0`。本地没有标签时必须用 `-PversionName=` 覆盖，否则兜底成 `VersionNameError`。值里含 `-` 会被 `increaseVersionForPreRelease()` 把第三段加一，正式标签不要带后缀。
+- 正式发布显式传入标签去掉 `v` 的值作为 `versionName`，包含预发布后缀时也保持原值。未传入参数时，仍由 `git describe --tags --dirty --exclude 'v*-*'` 推导，沿用历史开发版本加一规则。没有标签时必须用 `-PversionName=` 覆盖，否则兜底成 `VersionNameError`。
 - 工作区不干净时 `--dirty` 会给标签加后缀，同样触发上面那个加一。打标签前先确认 `git status` 干净。
 - `versionCode` 固定为 `1003003000`（vc105 变体为 105）。它是给接入方 SDK 看的伪装版本号，SDK 要求不低于 105，与对外版本号无关，不随版本号递增。
 
-每个标签对应一份 `docs/release-notes/<tag>.md`，发布工作流优先使用它，找不到才退回 GitHub 自动生成的说明。
+每个新发布标签必须有 `docs/release-notes/<tag>.md`，缺失或不符合格式时停止发布。正文从实际 APK 追加构建信息，产物命名与门禁见 [发布约定](docs/RELEASING.md)。
 
 ## CI 与发布
 
 `test_ci.yml` 不带任何签名密钥，构建未签名的 normal Release APK 和 hook AAR，检查最终产物，只上传 JSON 报告，不上传 SDK 二进制或 APK，也不创建 Release。已在 GitHub 实跑。
 
-`release.yml` 只在推送 `v*` 标签或手动指定标签时运行：解码 `MIPUSH_KEYSTORE_BASE64`，构建 normal 与 vc105 两个签名 APK，用 apksigner 核对证书 SHA-256 与 v2 方案，通过后直接创建 GitHub Release，并把两个 APK 作为 Release 附件上传，发布说明取自 `docs/release-notes/<tag>.md`。证书不匹配或产物缺失时直接失败，不发布。
+`release.yml` 只在推送 `v*` 标签或手动指定已有标签时运行。工作流要求版本化说明，解码 `MIPUSH_KEYSTORE_BASE64`，构建 normal 与 vc105 签名 APK。`prepare_release.py` 核对证书与 v2 签名，提取实际包信息，生成规范命名的 APK、校验文件和构建信息表，再创建 Release。已有 Release 保持原样，历史附件不覆盖。带连字符的标签按预发布处理。
+
+本轮改造后的发布工作流尚未在 GitHub 执行，不能沿用旧工作流成功记录作为验收。
 
 `verify_apk_artifact.py` 校验的 minSdk 与 targetSdk 从根 `build.gradle` 读取，不再写死在脚本里。它们原先被复制了一份，界面批次把 minSdk 从 21 提到 23 之后那份副本就过期了，校验一直失败在最早的一步，后面那些检查根本没跑到。
 
