@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -125,7 +127,7 @@ private fun Main(
             NavHost(
                 navController = navController,
                 startDestination = MainTabsRoute,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
                 enterTransition = Motion.Enter,
                 exitTransition = Motion.Exit,
                 popEnterTransition = Motion.PopEnter,

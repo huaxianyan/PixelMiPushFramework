@@ -5,9 +5,10 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavBackStackEntry
 import androidx.compose.ui.unit.dp
@@ -48,38 +49,72 @@ object Layout {
     val StatusDot = 12.dp
 }
 
-/** Spatial page motion. NavHost seeks the same pop transitions during predictive back. */
+/**
+ * Page motion aligned with Pixel Text's AppNavigation.kt (a505089d75b3, Apache-2.0).
+ * Uses this app's logical directions and NavHost; predictive Back seeks the same pop transitions.
+ */
 object Motion {
-    private const val BackgroundTravelFraction = 1f / 3f
-    private val Spatial = spring<IntOffset>()
-    // NavHost seeks elapsed time, so return displacement must not front-load like a spring.
-    private val ReturnSpatial = tween<IntOffset>(durationMillis = 260, easing = LinearEasing)
+    private const val ForegroundDurationMillis = 300
+    private const val BackgroundDurationMillis = 260
+    private const val FadeDurationMillis = 90
+    private const val BackgroundFadeDelayMillis = 120
+    private const val ForegroundFadeDelayMillis = 210
+    private const val BackgroundTravelFraction = 1f / 4f
+    private const val ForegroundEntryScale = 0.96f
+    private const val ForegroundExitScale = 0.90f
+    private const val BackgroundScale = 0.92f
+
+    private val ForegroundSpatial = tween<IntOffset>(
+        durationMillis = ForegroundDurationMillis, easing = FastOutSlowInEasing
+    )
+    private val BackgroundSpatial = tween<IntOffset>(
+        durationMillis = BackgroundDurationMillis, easing = FastOutSlowInEasing
+    )
+    private val ForegroundScaling = tween<Float>(
+        durationMillis = ForegroundDurationMillis, easing = FastOutSlowInEasing
+    )
+    private val BackgroundScaling = tween<Float>(
+        durationMillis = BackgroundDurationMillis, easing = FastOutSlowInEasing
+    )
+    private val EnterFade = tween<Float>(durationMillis = FadeDurationMillis)
+    private val BackgroundExitFade = tween<Float>(
+        durationMillis = FadeDurationMillis, delayMillis = BackgroundFadeDelayMillis
+    )
+    private val ForegroundExitFade = tween<Float>(
+        durationMillis = FadeDurationMillis, delayMillis = ForegroundFadeDelayMillis
+    )
 
     // Same-level tab effects never participate in a seekable hierarchy return.
     val TabEnter = fadeIn()
     val TabExit = fadeOut()
 
     val Enter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, Spatial)
+        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, ForegroundSpatial) +
+            fadeIn(EnterFade) +
+            scaleIn(initialScale = ForegroundEntryScale, animationSpec = ForegroundScaling)
     }
 
     val Exit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
         slideOutOfContainer(
             AnimatedContentTransitionScope.SlideDirection.Start,
-            Spatial,
+            BackgroundSpatial,
             targetOffset = { (it * BackgroundTravelFraction).toInt() }
-        )
+        ) + fadeOut(BackgroundExitFade) +
+            scaleOut(targetScale = BackgroundScale, animationSpec = BackgroundScaling)
     }
 
     val PopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         slideIntoContainer(
             AnimatedContentTransitionScope.SlideDirection.End,
-            ReturnSpatial,
+            BackgroundSpatial,
             initialOffset = { (it * BackgroundTravelFraction).toInt() }
-        )
+        ) + fadeIn(EnterFade) +
+            scaleIn(initialScale = BackgroundScale, animationSpec = BackgroundScaling)
     }
 
     val PopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, ReturnSpatial)
+        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, ForegroundSpatial) +
+            fadeOut(ForegroundExitFade) +
+            scaleOut(targetScale = ForegroundExitScale, animationSpec = ForegroundScaling)
     }
 }
