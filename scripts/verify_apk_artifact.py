@@ -9,6 +9,7 @@ import struct
 import subprocess
 import zipfile
 
+from apk_abi import universal_abis
 from dex_inventory import read_dex
 from verify_hook_artifact import ASPECTS, ROOT
 
@@ -109,6 +110,7 @@ def verify(apk, tools):
             dex_reports.append({'file': name, 'magic': magic, 'classes': len(classes)})
         native = sorted(name for name in names if name.startswith('lib/') and name.endswith('.so'))
 
+    native_abis = universal_abis(apk)
     data = apk.read_bytes()
     eocd = data.rfind(b'PK\x05\x06', max(0, len(data) - 65557))
     if eocd < 0 or eocd + 22 + struct.unpack_from('<H', data, eocd + 20)[0] != len(data):
@@ -146,6 +148,7 @@ def verify(apk, tools):
         'package': package.group(1), 'version_code': int(package.group(2)),
         'version_name': package.group(3), 'min_sdk': int(min_sdk), 'target_sdk': int(target_sdk),
         'unsigned': True, 'alignment_verified': True, 'native_libraries': native,
+        'native_abis': native_abis,
         'dex': dex_reports, 'classes': len(all_classes), 'sdk_classes_retained': len(sdk_classes),
         'manifest_components_present': len(components), 'aspects_with_code': len(ASPECTS),
         'sdk_methods_with_code': METHODS,

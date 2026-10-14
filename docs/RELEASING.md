@@ -32,7 +32,7 @@
 - `PixelMiPushFramework-vc105-universal-<版本>.apk`
 - 每个 APK 附带同名 `.sha256`，使用 `sha256sum -c` 可读的 LF 文本格式
 
-当前 APK 没有原生库，使用 `universal`。新增原生库时重新确认架构命名，发布脚本会暂停。
+当前 APK 包含 AndroidX graphics path 原生库，覆盖 ARM32、ARM64、x86 和 x86_64。`universal` 表示完整包含构建文件声明的 ABI，不表示没有原生库。ABI 名单只在 `push/build.gradle` 定义，检查和发布共用 `scripts/apk_abi.py`，核对实际 APK 的架构与各架构库覆盖范围。构建信息列出实际 ABI，缺少任何声明架构或库时停止发布。
 
 构建信息包含标签、源码提交、每个变体的包名、版本号、架构、min／target SDK、签名证书和 APK SHA-256。包名固定为 `com.xiaomi.xmsf`，签名沿用框架独立长期密钥。
 

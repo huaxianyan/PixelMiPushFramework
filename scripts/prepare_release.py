@@ -9,6 +9,7 @@ import shutil
 import subprocess
 from urllib.parse import unquote
 
+from apk_abi import universal_abis
 from verify_release_notes import check, FEATURE_HEADINGS, FIX_HEADINGS, DEFAULT_FORBIDDEN_HEADINGS, IDENTITY_HEADINGS, DEFAULT_LINK_PATTERN
 
 
@@ -60,11 +61,8 @@ def prepare(args):
             raise ValueError('APK versionName must match the tag without v')
         if 'application-debuggable' in badging:
             raise ValueError('Debuggable APK cannot be published')
-        native = re.search(r"native-code:\s*(.*)", badging)
-        abi = 'universal' if native is None else '-'.join(re.findall(r"'([^']+)'", native.group(1)))
-        # Both projects currently have no native libraries: universal is accurate.
-        if abi != 'universal':
-            raise ValueError('Native ABI packaging changed; choose an explicit asset naming policy')
+        native_abis = universal_abis(apk)
+        abi = 'universal'
         signer = output(apk_tool(args.tools, 'apksigner'), 'verify', '--verbose', '--print-certs', str(apk))
         cert = re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F]+)', signer)
         if not cert or cert.group(1).lower() != args.certificate.lower():
@@ -83,11 +81,11 @@ def prepare(args):
         if not minimum or not target:
             raise ValueError('Cannot read min / target SDK from APK')
         rows.extend([f'| {variant} 包名 / 版本号 | `{package.group(1)} / {package.group(2)}` |',
-                     f'| {variant} 架构 / min / target SDK | `{abi} / {minimum.group(1)} / {target.group(1)}` |',
+                     f'| {variant} 架构 / min / target SDK | `{abi} ({", ".join(native_abis)}) / {minimum.group(1)} / {target.group(1)}` |',
                      f'| {variant} 签名证书 SHA-256 | `{cert.group(1).lower()}` |',
                      f'| {name} SHA-256 | `{digest}` |'])
         metadata.append({'asset': name, 'package': package.group(1), 'version_code': int(package.group(2)),
-                         'sha256': digest, 'certificate_sha256': cert.group(1).lower()})
+                         'native_abis': native_abis, 'sha256': digest, 'certificate_sha256': cert.group(1).lower()})
     body = text.rstrip() + '\n\n## 构建信息\n\n' + '\n'.join(rows) + '\n'
     if len(body.splitlines()) > 40:
         raise ValueError('Final Release body exceeds 40 lines')
