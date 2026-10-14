@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -60,7 +61,7 @@ fun PageColumn(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding),
+            .consumeWindowInsets(contentPadding),
         contentAlignment = Alignment.TopCenter
     ) {
         Column(
@@ -68,6 +69,7 @@ fun PageColumn(
                 .widthIn(max = Layout.ContentMaxWidth)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .padding(contentPadding)
                 .padding(
                     horizontal = Layout.PageHorizontal,
                     vertical = Layout.PageVertical

@@ -1,12 +1,16 @@
 package top.trumeet.mipushframework.main.subpage
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -15,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.nihility.Global
@@ -24,8 +29,7 @@ import top.trumeet.mipushframework.component.SearchBar
 /**
  * The second level of the event pages: every event of a single application.
  *
- * The top bar of the shell is hidden on this route, so the one below carries the back arrow and
- * claims no window insets of its own — the shell already handed them down.
+ * This destination owns its scaffold and system-bar insets, including during predictive back.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,8 +40,9 @@ fun PackageEventsPage(packageName: String, onBack: () -> Unit) {
     }
     var query by rememberSaveable(packageName) { mutableStateOf("") }
 
-    Page {
-        Column {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
             TopAppBar(
                 title = { Text(appName) },
                 navigationIcon = {
@@ -47,9 +52,13 @@ fun PackageEventsPage(packageName: String, onBack: () -> Unit) {
                             contentDescription = stringResource(R.string.action_back)
                         )
                     }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0)
+                }
             )
+        }
+    ) { padding ->
+        Column(
+            Modifier.padding(padding).consumeWindowInsets(padding).imePadding()
+        ) {
             SearchBar(stringResource(R.string.action_search)) { query = it }
             EventList(query, packageName)
         }

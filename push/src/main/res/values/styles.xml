@@ -27,6 +27,11 @@
     </style>
 
 
+    <style name="Theme.NotificationClick" parent="Theme.Transparent">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
     <style name="Theme.Transparent" parent="AppTheme">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>

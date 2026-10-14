@@ -46,6 +46,7 @@ import com.xiaomi.mipush.sdk.PushMessageProcessor;
 import com.xiaomi.push.sdk.MyPushMessageHandler;
 import com.xiaomi.xmpush.thrift.PushMetaInfo;
 import com.xiaomi.xmpush.thrift.XmPushActionContainer;
+import com.xiaomi.xmsf.BuildConfig;
 import com.xiaomi.xmsf.R;
 import com.xiaomi.xmsf.push.notification.NotificationController;
 import com.xiaomi.xmsf.push.utils.Configurations;
@@ -555,11 +556,10 @@ public class MyMIPushNotificationHelper {
             return PendingIntent.getActivity(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
 
+        boolean businessMessage = isBusinessMessage(container);
         Intent intent = new Intent();
-        intent.setComponent(new ComponentName("com.xiaomi.xmsf",
-                isBusinessMessage(container) ?
-                        "com.xiaomi.mipush.sdk.PushMessageHandler" :
-                        "com.xiaomi.push.sdk.MyPushMessageHandler"));
+        intent.setComponent(new ComponentName(BuildConfig.APPLICATION_ID,
+                businessMessage ? CLASS_NAME_PUSH_MESSAGE_HANDLER : MyPushMessageHandler.class.getName()));
         intent.putExtra(PushConstants.MIPUSH_EXTRA_PAYLOAD, decryptedContent);
         intent.putExtra(FROM_NOTIFICATION, true);
         intent.putExtras(extra);
@@ -569,10 +569,14 @@ public class MyMIPushNotificationHelper {
         boolean useActivity = configuration.useClickedActivity(false);
         Intent activityIntent = getSdkIntent(context, container);
         if (!useActivity || activityIntent == null) {
-            return PendingIntent.getService(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            if (businessMessage) {
+                return PendingIntent.getService(context, notificationId, intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            }
+            return PendingIntent.getActivity(context, notificationId, intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
         activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        activityIntent.putExtra("mipush_serviceIntent", intent);
         activityIntent.putExtras(intent);
         return PendingIntent.getActivity(context, notificationId, activityIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }

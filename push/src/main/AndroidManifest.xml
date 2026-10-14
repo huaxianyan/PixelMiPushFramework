@@ -79,7 +79,16 @@
         </activity>
         <activity android:name="top.trumeet.mipushframework.wizard.RequestPermissionPage" />
 
-        <activity android:name="top.trumeet.mipushframework.main.MainPage" />
+        <activity
+                android:name="top.trumeet.mipushframework.main.MainPage"
+                android:windowSoftInputMode="adjustResize" />
+
+        <activity
+                android:name="com.xiaomi.push.sdk.MyPushMessageHandler"
+                android:exported="false"
+                android:excludeFromRecents="true"
+                android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+                android:theme="@style/Theme.NotificationClick" />
 
         <activity
                 android:name="top.trumeet.mipushframework.main.ApplicationInfoPage"
@@ -87,7 +96,8 @@
 
         <activity
                 android:name="top.trumeet.mipushframework.main.RecentEventListPage"
-                android:label="@string/recent_activity_title" />
+                android:label="@string/recent_activity_title"
+                android:windowSoftInputMode="adjustResize" />
         <activity
                 android:name="top.trumeet.mipushframework.main.HelpPage"
                 android:label="@string/helplib_title"
@@ -209,8 +219,6 @@
         <service
                 android:name=".push.service.MiuiPushActivateService"
                 android:exported="true" />
-
-        <service android:name="com.xiaomi.push.sdk.MyPushMessageHandler" />
 
         <!-- Push API -->
         <service

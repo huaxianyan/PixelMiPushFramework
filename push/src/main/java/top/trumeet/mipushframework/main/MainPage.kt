@@ -4,7 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,6 +33,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.xiaomi.xmsf.R
@@ -47,6 +52,7 @@ import top.trumeet.mipushframework.main.subpage.SettingsPagePreview
 import top.trumeet.ui.theme.Theme
 import top.trumeet.ui.theme.Motion
 
+private const val MainTabsRoute = "main_tabs"
 private const val PackageEventsRoutePrefix = "package_events"
 private const val PackageEventsRoute = "$PackageEventsRoutePrefix/{packageName}"
 private const val PackageNameArgument = "packageName"
@@ -65,37 +71,20 @@ class MainPage : ComponentActivity() {
         }
         setContent {
             Main(Screen.Dashboard.route.toString()) { navController ->
-                composable(Screen.Dashboard.route.toString()) {
-                    MainTab(navController, Screen.Dashboard.route.toString()) { Dashboard() }
-                }
+                composable(Screen.Dashboard.route.toString()) { Dashboard() }
                 composable(Screen.Events.route.toString()) {
-                    MainTab(navController, Screen.Events.route.toString()) {
-                        PackageEventList { packageName ->
-                            navController.navigate(packageEventsRoute(packageName))
-                        }
+                    PackageEventList { packageName ->
+                        navController.navigate(packageEventsRoute(packageName))
                     }
                 }
                 composable(Screen.Apps.route.toString()) {
-                    MainTab(navController, Screen.Apps.route.toString()) {
-                        Column {
-                            var query by rememberSaveable { mutableStateOf("") }
-                            SearchBar(stringResource(R.string.action_search)) { query = it }
-                            ApplicationList(query)
-                        }
+                    Column {
+                        var query by rememberSaveable { mutableStateOf("") }
+                        SearchBar(stringResource(R.string.action_search)) { query = it }
+                        ApplicationList(query)
                     }
                 }
-                composable(Screen.Settings.route.toString()) {
-                    MainTab(navController, Screen.Settings.route.toString()) { Settings() }
-                }
-                composable(
-                    route = PackageEventsRoute,
-                    arguments = listOf(navArgument(PackageNameArgument) { type = NavType.StringType })
-                ) { entry ->
-                    PackageEventsPage(
-                        packageName = entry.arguments?.getString(PackageNameArgument).orEmpty(),
-                        onBack = { navController.popBackStack() }
-                    )
-                }
+                composable(Screen.Settings.route.toString()) { Settings() }
             }
         }
     }
@@ -136,7 +125,7 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
     }
 }
 
-/** Each destination owns its scaffold, so page motion includes its bars and keeps a stable viewport. */
+/** Only hierarchy changes move the full viewport; the tab shell is one root destination. */
 @Composable
 private fun Main(
     startDestination: String,
@@ -146,31 +135,54 @@ private fun Main(
     Theme {
         NavHost(
             navController = navController,
-            startDestination = startDestination,
+            startDestination = MainTabsRoute,
             modifier = Modifier.fillMaxSize(),
             enterTransition = Motion.Enter,
             exitTransition = Motion.Exit,
             popEnterTransition = Motion.PopEnter,
             popExitTransition = Motion.PopExit
         ) {
-            navContent(navController)
+            composable(MainTabsRoute) {
+                MainTabs(startDestination) { navContent(navController) }
+            }
+            composable(
+                route = PackageEventsRoute,
+                arguments = listOf(navArgument(PackageNameArgument) { type = NavType.StringType })
+            ) { entry ->
+                PackageEventsPage(
+                    packageName = entry.arguments?.getString(PackageNameArgument).orEmpty(),
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
 
+/** Same-level selection keeps both bars stationary and restores each tab's navigation state. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainTab(
-    navController: NavController,
-    route: String,
-    content: @Composable () -> Unit
+private fun MainTabs(
+    startDestination: String,
+    navContent: NavGraphBuilder.() -> Unit
 ) {
+    val navController = rememberNavController()
+    val entry by navController.currentBackStackEntryAsState()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
-        bottomBar = { BottomNavigationBar(navController, route) }
+        bottomBar = { BottomNavigationBar(navController, entry?.destination?.route) }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) { content() }
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.fillMaxSize().padding(padding)
+                .consumeWindowInsets(padding).imePadding(),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None },
+            builder = navContent
+        )
     }
 }
 
@@ -180,9 +192,9 @@ private fun MainTab(
 )
 @Composable
 private fun MainDashboardPreview() {
-    Main(Screen.Dashboard.route.toString()) { navController ->
+    Main(Screen.Dashboard.route.toString()) { _ ->
         composable(Screen.Dashboard.route.toString()) {
-            MainTab(navController, Screen.Dashboard.route.toString()) { DashboardPreview() }
+            DashboardPreview()
         }
         composable(Screen.Events.route.toString()) { }
         composable(Screen.Apps.route.toString()) { }
@@ -196,10 +208,10 @@ private fun MainDashboardPreview() {
 )
 @Composable
 private fun MainEventsPreview() {
-    Main(Screen.Events.route.toString()) { navController ->
+    Main(Screen.Events.route.toString()) { _ ->
         composable(Screen.Dashboard.route.toString()) { }
         composable(Screen.Events.route.toString()) {
-            MainTab(navController, Screen.Events.route.toString()) { PackageEventListPreview() }
+            PackageEventListPreview()
         }
         composable(Screen.Apps.route.toString()) { }
         composable(Screen.Settings.route.toString()) { }
@@ -212,16 +224,14 @@ private fun MainEventsPreview() {
 )
 @Composable
 private fun MainAppsPreview() {
-    Main(Screen.Apps.route.toString()) { navController ->
+    Main(Screen.Apps.route.toString()) { _ ->
         composable(Screen.Dashboard.route.toString()) { }
         composable(Screen.Events.route.toString()) { }
         composable(Screen.Apps.route.toString()) {
-            MainTab(navController, Screen.Apps.route.toString()) {
-                Column {
-                    val onValueChange: (String) -> Unit = {}
-                    SearchBar(stringResource(R.string.action_search), onValueChange)
-                    ApplicationListPreview()
-                }
+            Column {
+                val onValueChange: (String) -> Unit = {}
+                SearchBar(stringResource(R.string.action_search), onValueChange)
+                ApplicationListPreview()
             }
         }
         composable(Screen.Settings.route.toString()) { }
@@ -234,12 +244,12 @@ private fun MainAppsPreview() {
 )
 @Composable
 private fun MainSettingsPreview() {
-    Main(Screen.Settings.route.toString()) { navController ->
+    Main(Screen.Settings.route.toString()) { _ ->
         composable(Screen.Dashboard.route.toString()) { }
         composable(Screen.Events.route.toString()) { }
         composable(Screen.Apps.route.toString()) { }
         composable(Screen.Settings.route.toString()) {
-            MainTab(navController, Screen.Settings.route.toString()) { SettingsPagePreview() }
+            SettingsPagePreview()
         }
     }
 }
@@ -250,10 +260,10 @@ private fun MainSettingsPreview() {
 )
 @Composable
 private fun MainDialogPreview() {
-    Main(Screen.Events.route.toString()) { navController ->
+    Main(Screen.Events.route.toString()) { _ ->
         composable(Screen.Dashboard.route.toString()) { }
         composable(Screen.Events.route.toString()) {
-            MainTab(navController, Screen.Events.route.toString()) { EventDetailsDialogPreview() }
+            EventDetailsDialogPreview()
         }
         composable(Screen.Apps.route.toString()) { }
         composable(Screen.Settings.route.toString()) { }

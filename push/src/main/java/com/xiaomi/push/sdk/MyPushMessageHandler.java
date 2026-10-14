@@ -1,18 +1,12 @@
 package com.xiaomi.push.sdk;
 
-import static android.os.Build.VERSION.SDK_INT;
-import static android.os.Build.VERSION_CODES.P;
-
-import android.app.IntentService;
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.IBinder;
 
-import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
 import com.catchingnow.icebox.sdk_client.IceBox;
@@ -29,8 +23,6 @@ import com.xiaomi.xmpush.thrift.XmPushActionContainer;
 import com.xiaomi.xmsf.push.notification.NotificationController;
 import com.xiaomi.xmsf.push.utils.Configurations;
 
-import java.util.function.Consumer;
-
 import top.trumeet.common.Constants;
 import top.trumeet.common.ita.ITopActivity;
 import top.trumeet.common.ita.TopActivityFactory;
@@ -42,7 +34,7 @@ import top.trumeet.common.utils.Utils;
  * @date 2018/2/9
  */
 
-public class MyPushMessageHandler extends IntentService {
+public class MyPushMessageHandler extends Activity {
     private static Logger logger = XLog.tag("MyPushMessageHandler").build();
 
     private static final int APP_CHECK_FRONT_MAX_RETRY = 8;
@@ -51,12 +43,25 @@ public class MyPushMessageHandler extends IntentService {
 
     static ITopActivity iTopActivity = null;
 
-    public MyPushMessageHandler() {
-        super("my mipush message handler");
-    }
+    private boolean handlingClick;
 
     @Override
-    protected void onHandleIntent(final Intent intent) {
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && !handlingClick) {
+            handlingClick = true;
+            final Intent clickIntent = getIntent();
+            new Thread(() -> {
+                try {
+                    handleNotificationClick(clickIntent);
+                } finally {
+                    runOnUiThread(this::finish);
+                }
+            }, "notification-click").start();
+        }
+    }
+
+    private void handleNotificationClick(final Intent intent) {
         byte[] payload = intent.getByteArrayExtra(PushConstants.MIPUSH_EXTRA_PAYLOAD);
         if (payload == null) {
             logger.e("mipush_payload is null");
@@ -134,7 +139,7 @@ public class MyPushMessageHandler extends IntentService {
         String targetPackage = container.getPackageName();
 
         final Intent localIntent = new Intent(PushConstants.MIPUSH_ACTION_NEW_MESSAGE);
-        localIntent.setComponent(new ComponentName(targetPackage, "com.xiaomi.mipush.sdk.PushMessageHandler"));
+        localIntent.setComponent(new ComponentName(targetPackage, MyMIPushNotificationHelper.CLASS_NAME_PUSH_MESSAGE_HANDLER));
         localIntent.putExtra(PushConstants.MIPUSH_EXTRA_PAYLOAD, payload);
         localIntent.putExtra(MIPushNotificationHelper.FROM_NOTIFICATION, true);
         localIntent.addCategory(String.valueOf(metaInfo.getNotifyId()));
@@ -181,34 +186,6 @@ public class MyPushMessageHandler extends IntentService {
         } catch (RuntimeException ignore) {
         }
         return intent;
-    }
-
-    private void runWithAppStateElevatedToForeground(final String pkg, final Consumer<Boolean> task) {
-        if (SDK_INT < P) {      // onNullBinding() was introduced in Android P.
-            task.accept(Boolean.FALSE);
-            return;
-        }
-        final Intent intent = new Intent().setClassName(pkg, MyMIPushNotificationHelper.CLASS_NAME_PUSH_MESSAGE_HANDLER);
-        final Context appContext = getApplicationContext();
-        final boolean successful = appContext.bindService(intent, new ServiceConnection() {
-
-            private void runTaskAndUnbind() {
-                task.accept(Boolean.TRUE);
-                appContext.unbindService(this);
-            }
-
-            @RequiresApi(P) @Override public void onNullBinding(final ComponentName name) {
-                runTaskAndUnbind();
-            }
-
-            @Override public void onServiceConnected(final ComponentName name, final IBinder service) {
-                runTaskAndUnbind();     // Should not happen
-            }
-
-            @Override public void onServiceDisconnected(final ComponentName name) {}
-        }, BIND_AUTO_CREATE | BIND_IMPORTANT | BIND_ABOVE_CLIENT);
-
-        if (! successful) task.accept(Boolean.FALSE);
     }
 
     private static long pullUpApp(Context context, String targetPackage, XmPushActionContainer container) {

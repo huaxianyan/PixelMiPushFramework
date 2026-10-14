@@ -188,3 +188,35 @@
 - 随后系统前台记录确认 QQ ChatActivity，采样未出现通知中转阻止、远程动画超时或致命异常标记。设备固定 UI 临时路径已确认不存在，未操作 QQ 账号、发送消息或修改数据库
 - 这条 target 37 真实端到端流程已通过，不能再把核心推送与直接点击列为尚未验证；target 31 的旧结果未替代本轮新证据
 - 与 STATUS-016 的启动、连接、specialUse 前台开关及返回键结果合并，当前 Android 17 主设备的已有注册、当前授权及直接 Activity 配置下核心流程可用。默认 Service 点击、独立注册／ACK 及其他边界仍按原记录保留，不据此宣布所有客户端和无授权环境均通过
+
+## STATUS-018：普通默认通知入口迁移准备
+
+- 后续工作先收敛普通推送默认点击。将现有 MyPushMessageHandler 从 IntentService 改为通知点击 Activity，工厂使用 Activity PendingIntent，移除旧 Service 注册，没有保留并行普通默认实现
+- 入口等待实际窗口焦点后在工作线程处理，复用原应用解冻、前台检测与打开、原 payload 转发和成功后通知清理顺序。耗时处理离开主线程，结束后关闭入口。透明非浮动窗口只承接点击分发，不新增设置页或另一套返回栈
+- 原直接 Activity 配置和 URL 路径保持原样。删除当前框架与模块源码均无读取方的 mipush_serviceIntent，原 payload、FROM_NOTIFICATION、通知标识和通知类别仍保留
+- 删除无调用的前台绑定辅助方法及其依赖导入，SDK 目标处理器类名复用已有定义，不复制协议标识
+- SDK 商业消息仍走原 PushMessageHandler。实际字节码确认 addJob 是异步调度且额外启动 Service，不把它伪装为同步回执完成；该分支与普通默认入口属于不同协议路径，尚未宣称完成迁移
+- 升级前普通默认通知持有的旧 Service PendingIntent 不会自动变成 Activity，需重新发布通知再验收。没有新增兼容壳或双注册来掩盖此影响；已有 QQ 直通通知不属于该旧默认路径
+- 保持 target 37，normal 版本码按构建定义递增，SDK、schema、签名和同步配置不变。定向 normal Debug Kotlin／Java 编译及清单合并通过，用时 34 秒，不为仅应用内改动重复全量构建
+- 合并清单确认普通默认处理组件只注册为非导出 Activity，没有旧 Service 注册；SDK 商业处理器仍存在。静态结果不能证明窗口焦点、点击打开、第三方 SDK 回调或通知清理已通过
+- 本阶段仅形成 1.1.0-alpha.4 源码候选，未生成发布 APK、提交、公开发布或安装；设备仍运行已验收核心流程的 alpha.3。随后按 STATUS-019 将系统栏与预测性返回一并集中验收
+
+## STATUS-019：Android 现代界面能力合并验收
+
+- 用户要求将 edge-to-edge、预测性返回与普通默认点击放入同一个 target 37 候选集中测试，不拆中间装机版本。本轮允许临时将设备从三键切为手势导航，测试结束或异常退出时必须恢复原导航设置；图片读取仍需另行授权
+- 主要 Compose Activity 已调用 enableEdgeToEdge，Material You 默认开启。应用支持可调整窗口，现有内容最大宽度保持，未为单台手机虚构双栏场景，也未引入预发布 Material API
+- Navigation Compose 2.9.8 已提供手势进度寻址与取消恢复，当前 NavHost 共享不透明分层滑动。按官方接入说明复用现有导航，不叠加另一套 PredictiveBackHandler 或返回状态机
+- 找到真实遗漏：应用事件详情页仍使用零 TopAppBar insets，并注释称外层负责留白，但主导航改为全窗口后已无外层 Scaffold。改由目的地自己的 Scaffold 和 TopAppBar 负责系统栏边界
+- 主页面、事件详情与独立近期事件页消费 Scaffold 留白后处理 IME；搜索入口 Activity 明确 adjustResize，避免键盘与系统栏重复留白。共享长页面将内容留白移入滚动范围，维持系统栏下可滚动的视口
+- 合并候选的定向 normal Debug Kotlin／Java 编译和清单合并通过，用时 17 秒；alpha.4 发布说明门禁通过。本阶段仍未发布或安装，未改变设备导航模式，不用 alpha.3 冒充新布局验收
+- 验收范围为系统栏与键盘、深浅色、手势进度／取消／提交、弹窗优先返回、跨 Activity 与返回桌面；与默认点击和真实推送一起记录。代码接入不替代真机视觉结果，手势测试结束恢复三键导航后再记录结论
+- 官方依据：[Compose 窗口 insets](https://developer.android.com/develop/ui/compose/system/insets)、[预测性返回接入](https://developer.android.com/develop/ui/compose/system/predictive-back-setup)，本轮核对
+
+## STATUS-020：区分底栏栏目与层级页面转场
+
+- 用户在当前版本报告：底栏切换看起来像进入次级页面，整个页面侧滑不符合导航层级。暂停 alpha.4 发布及装机，先纠正这一真实界面问题
+- 原实现将每个底栏栏目作为包含顶栏、底栏的完整目的地，并统一套用层级滑动。现在四个栏目共用一个持久 Scaffold，只切换中间内容；栏目切换不做前进／后退侧滑
+- 外层导航只管理栏目容器与事件详情，保持完整窗口的分层滑动和预测性返回；内层导航只管理同级栏目及其状态恢复。两者职责分开，不用切换顶底栏或改变视口高度来模拟层级返回
+- 保留原 saveState／restoreState 与单实例栏目选择、返回首页语义，预览复用新的共同外壳。系统栏及键盘留白仍由此前修复负责，没有回退为覆盖全部页面的条件 Scaffold
+- 定向 normal Debug Kotlin 编译通过，用时 9 秒；alpha.4 发布说明和中文文案检查通过。未重复全量构建，也未为静态结构添加假端到端测试
+- 本阶段只修改源码与说明，仍需 alpha.4 最终附件确认栏目切换、状态恢复、详情返回和手势取消／提交。当前设备未更新，未宣称视觉或运行验收通过
