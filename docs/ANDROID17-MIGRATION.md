@@ -2,7 +2,7 @@
 
 ## 目标与边界
 
-框架目标系统为 Android 17（API 37），按 `android-modern-standards` 分级迁移。当前代码已进入 target 31 审计点，编译通过，设备验收尚未开始。这不是已验收基线，也不代表 Android 17 适配完成。
+框架目标系统为 Android 17（API 37）。用户已将后续节奏改为直接形成 target 37 候选、集中真机验收，不再逐级发布和安装中间版本。target 31 的已有设备结果保留作为诊断基线，不重复测试。当前源码目标已设为 37，候选构建及最终设备验收结果分别记录，不把改完数值视为适配完成。
 
 保留包名 `com.xiaomi.xmsf`、3.7.9 SDK、schema 17、注册与 ACK 行为。SDK 更换、数据库迁移、签名切换和界面组件翻新不混入本轮。版本取值以根构建文件为准。
 
@@ -28,7 +28,7 @@
 | target 36 | 预测性返回、大屏可调整性、退出边到边开关失效 | 返回提交与取消、Activity 返回、大屏布局 |
 | target 37 | 本地网络权限、TLS 默认行为、反射写入 final 字段及 MessageQueue、后台音频与 BAL | 实际服务连接、ART、通知与点击，不以模块宿主验收代替框架验收 |
 
-每一级记录实际结果，取得阶段确认后再进入下一级。不要在未提升 target 时将运行结果记作新版行为已通过。
+上表现在用作行为归因清单，不再对应逐级装机门禁。仅对最终 target 37 候选集中验收，按对应平台边界记录失败原因。target 31 的结果不能替代 37 下的实际运行证据。
 
 ## 已发现的 target 31 前置问题
 
@@ -89,7 +89,7 @@ normal Debug Kotlin／Java 编译通过，用时 48 秒。没有生成 APK、安
 
 ## 第五批：target 31 审计点
 
-根构建文件的唯一 target 定义已提升到 31，保留原包名、compileSdk、minSdk、SDK 和 schema。不继续停在旧 target 做推测性修补，也不预先增加打开应用的中转页面。后续按 target 31 的真实失败修正，不进入 target 33 以上阶段。
+根构建文件的唯一 target 定义已提升到 31，保留原包名、compileSdk、minSdk、SDK 和 schema。不继续停在旧 target 做推测性修补，也不预先增加打开应用的中转页面。该批当时停留在 target 31；后续节奏已由用户调整为直接形成 target 37 候选，见 STATUS-014。
 
 官方 `AlarmManager.canScheduleExactAlarms()` 文档明确：target 31 以上持有精确闹钟权限，或位于设备省电豁免名单时，可以调度精确闹钟。现有引导要求省电豁免，因此不为 SDK 心跳额外申请 `SCHEDULE_EXACT_ALARM` 或 `USE_EXACT_ALARM`。这不等于后台服务启动自动获准，也不证明当前设备已经取得豁免。
 
@@ -99,11 +99,11 @@ normal Debug Kotlin／Java 编译通过，用时 48 秒。没有生成 APK、安
 
 normal Debug Kotlin／Java 编译及合并清单通过，用时 45 秒。合并清单的 target 与根定义一致，包名仍为 `com.xiaomi.xmsf`，没有新增精确闹钟权限。未生成 APK，也未安装或发布。
 
-已从主题分支发布 [v1.1.0-alpha.2](https://github.com/huaxianyan/PixelMiPushFramework/releases/tag/v1.1.0-alpha.2) 审计测试版，线上附件已复核。alpha.1 因原生库命名门禁失败，其标签保留。正式 Latest 仍为 v1.0.1，同签名覆盖安装及设备验收仍未授权。取得安装授权后先核对当前签名、版本、权限和设备状态，签名不符就停止，不卸载或清数据。至少覆盖首次省电授权后的调度、前台开关两种状态、连接恢复，以及直接 Activity 和默认 Service 两条通知点击路径。备份和导航按前述真实入口验收。
+已从主题分支发布 [v1.1.0-alpha.2](https://github.com/huaxianyan/PixelMiPushFramework/releases/tag/v1.1.0-alpha.2) 审计测试版，线上附件已复核。alpha.1 因原生库命名门禁失败，其标签保留。正式 Latest 仍为 v1.0.1。随后用户授权本机直连验收，已核对现装签名、版本和权限并同签名覆盖 normal alpha.2，初步设备结果见 STATUS-012，后续真实 QQ 新消息接收及直接 Activity 点击通过，证据边界见 STATUS-013。默认 Service 点击仍未完成验收。签名不符时停止，不卸载或清数据。至少覆盖首次省电授权后的调度、前台开关两种状态、连接恢复，以及直接 Activity 和默认 Service 两条通知点击路径。备份和导航按前述真实入口验收。
 
 ## 本批验证
 
-前五批通过 normal Debug Kotlin／Java 编译及 Manifest 合并。随后主题分支及发布 CI 通过，已生成并公开 alpha.2 签名附件。线上包的版本、签名、ABI、大小及哈希复核完成，结果见 STATUS-011；尚未安装或执行设备验收。
+前五批通过 normal Debug Kotlin／Java 编译及 Manifest 合并。随后主题分支及发布 CI 通过，已生成并公开 alpha.2 签名附件。线上包的版本、签名、ABI、大小及哈希复核完成，结果见 STATUS-011。后续授权覆盖安装成功，连接、前台开关、主动重连和返回键状态完成初步检查，未完成项及证据边界见 STATUS-012；真实 QQ 新消息和直接点击结果见 STATUS-013。这些结果均来自 target 31，最终 target 37 候选尚需集中验收。
 
 导航动效及预测性返回尚未在设备上验收。装机授权后，先用一条真实入口流程验证：从主页事件页打开某应用的消息详情，执行一次返回取消，再提交返回。观察详情、顶部栏和底栏的层次，确认取消后仍停留在详情，提交后回到原列表位置。帮助文章进退和四个主标签切换随后作人工对照。
 

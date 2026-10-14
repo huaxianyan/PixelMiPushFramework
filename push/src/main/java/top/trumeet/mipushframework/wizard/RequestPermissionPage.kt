@@ -1,9 +1,16 @@
 package top.trumeet.mipushframework.wizard
 
+import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
@@ -29,7 +36,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +49,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -91,9 +102,22 @@ fun PermissionMainPage(
         }
     }
 
-    RecheckPermissionsOnResume(entries, granted)
+    val notificationGranted = remember(context) {
+        mutableStateOf(hasNotificationPermission(context))
+    }
+    val notificationDenied = rememberSaveable { mutableStateOf(false) }
+    val notificationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        notificationGranted.value = it
+        notificationDenied.value = !it
+    }
 
-    val allGranted = granted.isNotEmpty() && granted.all { it }
+    RecheckPermissionsOnResume(entries, granted) {
+        notificationGranted.value = hasNotificationPermission(context)
+    }
+
+    val allGranted = granted.isNotEmpty() && granted.all { it } && notificationGranted.value
 
     Theme {
         Scaffold(
@@ -107,8 +131,29 @@ fun PermissionMainPage(
                 SettingsGroup(title = stringResource(R.string.wizard_permissions_title)) {
                     entries.forEachIndexed { index, entry ->
                         PermissionRow(
-                            entry = entry,
-                            granted = granted.getOrElse(index) { false }
+                            title = entry.title,
+                            description = entry.description,
+                            granted = granted.getOrElse(index) { false },
+                            onRequest = entry.operator::requestPermission
+                        )
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        PermissionRow(
+                            title = stringResource(R.string.wizard_notification_permission),
+                            description = stringResource(R.string.wizard_notification_permission_description),
+                            granted = notificationGranted.value,
+                            onRequest = {
+                                if (notificationDenied.value && !ActivityCompat.shouldShowRequestPermissionRationale(
+                                        context as Activity, Manifest.permission.POST_NOTIFICATIONS
+                                    )) {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    )
+                                } else {
+                                    notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            }
                         )
                     }
                 }
@@ -175,16 +220,21 @@ private fun WelcomeCard() {
 }
 
 @Composable
-private fun PermissionRow(entry: PermissionEntry, granted: Boolean) {
+private fun PermissionRow(
+    title: String,
+    description: String,
+    granted: Boolean,
+    onRequest: () -> Unit
+) {
     ListItem(
         leadingContent = {
             StatusDot(if (granted) RegistrationStateStyle.GreenColor else NotGrantedColor)
         },
         headlineContent = {
-            Text(entry.title, style = MaterialTheme.typography.titleMedium)
+            Text(title, style = MaterialTheme.typography.titleMedium)
         },
         supportingContent = {
-            Text(entry.description, style = MaterialTheme.typography.bodyMedium)
+            Text(description, style = MaterialTheme.typography.bodyMedium)
         },
         trailingContent = {
             if (granted) {
@@ -194,7 +244,7 @@ private fun PermissionRow(entry: PermissionEntry, granted: Boolean) {
                     color = RegistrationStateStyle.GreenColor
                 )
             } else {
-                FilledTonalButton(onClick = { entry.operator.requestPermission() }) {
+                FilledTonalButton(onClick = onRequest) {
                     Text(stringResource(R.string.wizard_permission_grant))
                 }
             }
@@ -207,7 +257,8 @@ private fun PermissionRow(entry: PermissionEntry, granted: Boolean) {
 @Composable
 private fun RecheckPermissionsOnResume(
     entries: List<PermissionEntry>,
-    granted: MutableList<Boolean>
+    granted: MutableList<Boolean>,
+    recheckNotifications: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, entries) {
@@ -219,12 +270,18 @@ private fun RecheckPermissionsOnResume(
                         granted[index] = value
                     }
                 }
+                recheckNotifications()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 }
+
+fun hasNotificationPermission(context: Context): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+        PackageManager.PERMISSION_GRANTED
 
 private val NotGrantedColor = Color(0xFF9E9E9E)
 
@@ -258,20 +315,16 @@ fun PermissionMainPagePreview() {
             WelcomeCard()
             SettingsGroup(title = stringResource(R.string.wizard_permissions_title)) {
                 PermissionRow(
-                    PermissionEntry(
-                        stringResource(R.string.wizard_title_stats_permission),
-                        stringResource(R.string.wizard_title_stats_permission_text),
-                        UsageStatsPermissionInfo(LocalContext.current).permissionOperator
-                    ),
-                    granted = true
+                    title = stringResource(R.string.wizard_title_stats_permission),
+                    description = stringResource(R.string.wizard_title_stats_permission_text),
+                    granted = true,
+                    onRequest = UsageStatsPermissionInfo(LocalContext.current).permissionOperator::requestPermission
                 )
                 PermissionRow(
-                    PermissionEntry(
-                        stringResource(R.string.wizard_title_alert_window_permission),
-                        stringResource(R.string.wizard_title_alert_window_text),
-                        AlertWindowPermissionInfo(LocalContext.current).permissionOperator
-                    ),
-                    granted = false
+                    title = stringResource(R.string.wizard_title_alert_window_permission),
+                    description = stringResource(R.string.wizard_title_alert_window_text),
+                    granted = false,
+                    onRequest = AlertWindowPermissionInfo(LocalContext.current).permissionOperator::requestPermission
                 )
             }
         }

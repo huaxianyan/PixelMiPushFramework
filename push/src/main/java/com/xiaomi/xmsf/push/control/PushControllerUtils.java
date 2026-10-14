@@ -149,7 +149,8 @@ public class PushControllerUtils {
             try {
                 IntentFilter filter = new IntentFilter();
                 filter.addAction(Intent.ACTION_SCREEN_ON);
-                context.registerReceiver(liveReceiver, filter);
+                ContextCompat.registerReceiver(context, liveReceiver, filter,
+                        ContextCompat.RECEIVER_NOT_EXPORTED);
             } catch (Throwable e) {
                 logger.e(e);
             }

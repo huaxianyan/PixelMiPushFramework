@@ -7,6 +7,8 @@ import android.content.SharedPreferences;
 
 import androidx.core.app.ActivityCompat;
 
+import com.xiaomi.xmsf.push.control.PushControllerUtils;
+
 import top.trumeet.common.Constants;
 import top.trumeet.mipushframework.main.MainPage;
 
@@ -23,8 +25,8 @@ final class WizardSPUtils {
     }
 
     static boolean shouldShowWizard (Context context) {
-        return getSp (context)
-                .getBoolean(Constants.KEY_SHOW_WIZARD, true);
+        return !RequestPermissionPageKt.hasNotificationPermission(context)
+                || getSp(context).getBoolean(Constants.KEY_SHOW_WIZARD, true);
     }
 
     static void setShouldShowWizard (boolean value, Context context) {
@@ -36,6 +38,7 @@ final class WizardSPUtils {
 
     static void finishWizard (Activity context) {
         setShouldShowWizard(false, context);
+        PushControllerUtils.setServiceEnable(true, context.getApplicationContext());
         ActivityCompat.finishAffinity(context);
         context.startActivity(new Intent(context,
                 MainPage.class));

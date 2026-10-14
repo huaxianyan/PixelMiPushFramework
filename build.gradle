@@ -117,7 +117,7 @@ private String getVersionNameFromGit() {
 ext {
     minSdkVersion = 23
     compileSdkVersion = 36
-    targetSdkVersion = 31
+    targetSdkVersion = 37
     pushVersionCode = 7
 
     gitVersionCode = getVersionCode()

@@ -106,6 +106,8 @@
     <string name="wizard_title_stats_permission_text">You need to grant \"Usage stats\" permission or you will not be able to receive notifications.</string>
 
     <!-- First run setup, one page, one button per permission -->
+    <string name="wizard_notification_permission">Notifications</string>
+    <string name="wizard_notification_permission_description">Show service status and permission reminders.</string>
     <string name="wizard_permissions_title">Permissions to grant</string>
     <string name="wizard_permission_grant">Grant</string>
     <string name="wizard_permission_granted">Granted</string>

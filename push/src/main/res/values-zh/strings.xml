@@ -107,6 +107,8 @@
     <string name="wizard_title_stats_permission_text">您需要授予“使用情况”权限，否则您无法接收通知。</string>
 
     <!-- First run setup, one page, one button per permission -->
+    <string name="wizard_notification_permission">显示通知</string>
+    <string name="wizard_notification_permission_description">显示推送服务的运行状态和授权提醒。</string>
     <string name="wizard_permissions_title">需要授予的权限</string>
     <string name="wizard_permission_grant">去授予</string>
     <string name="wizard_permission_granted">已授予</string>

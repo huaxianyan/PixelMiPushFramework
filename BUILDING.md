@@ -2,14 +2,14 @@
 
 ## 当前范围
 
-构建链路与界面改造均已完成。本仓库自 1.0.0 起启用独立版本线，不再沿用上游的 0.3.x 编号；`targetSdk` 仍留在 30，用于隔离系统行为变化。
+构建链路与界面改造均已完成。本仓库自 1.0.0 起启用独立版本线，不再沿用上游的 0.3.x 编号；正式基线仍见 master，当前 Android 17 主题分支直接构建 target 37 候选，运行验收状态见 `docs/STATUS.md`。
 
 | 项目 | 当前配置 |
 |---|---|
 | JDK | 17 |
 | Gradle | 8.11.1，使用仓库 Wrapper |
 | Android Gradle Plugin | 8.9.1 |
-| compileSdk / targetSdk / minSdk | 36 / 30 / 23 |
+| compileSdk / targetSdk / minSdk | 36 / 37 / 23 |
 | Kotlin / Compose 编译插件 | 2.1.20 / 2.1.20 |
 | AspectJ 编译器与运行时 | 1.9.7 |
 | GreenDAO 插件 / 运行时 / schema | 3.3.1 / 3.3.0 / 17 |
@@ -44,7 +44,7 @@ python scripts/verify_hook_artifact.py \
   mipush_hook/build/outputs/aar/mipush_hook-release.aar
 ```
 
-检查包括 SDK 类完整性、重复打包、现有关键边界的类字节变化、9 个真实切面的 `aspectOf()` 方法，以及 SDK 类内的 15 个关键处理器调用指令。它不执行 Android 代码，不能证明切面顺序、ART 校验或实际推送行为。
+检查包括 SDK 类完整性、重复打包、现有关键边界的类字节变化、真实切面的 `aspectOf()` 方法，以及 SDK 类内的 15 个关键处理器调用指令。它不执行 Android 代码，不能证明切面顺序、ART 校验或实际推送行为。
 
 ## APK 验证
 
@@ -144,7 +144,7 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 - 旧 API、Compose 和 SDK XML 版本告警尚未全部处理
 - 构建现代化批次完成了 D8／打包、静态检查和签名核对。该批次没有验证 ART、设备运行或真实推送。后续单设备验收的历史结论与限制见 [交接记录](docs/STATUS.md)
 - D8 转换仍出现旧 SDK 缺少 StackMap 表的告警，未屏蔽，也未用 `-noverify` 绕过 APK 构建
-- `targetSdk` 暂留 30，用于隔离构建变化与 Android 系统行为变化
+- 当前主题分支直接使用 target 37；compileSdk 暂留 36，本轮代码只使用该平台已有的公开 API，工具链升级另行实施
 
 ## 版本号
 
@@ -152,7 +152,7 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 
 - 正式发布显式传入标签去掉 `v` 的值作为 `versionName`，包含预发布后缀时也保持原值。未传入参数时，仍由 `git describe --tags --dirty --exclude 'v*-*'` 推导，沿用历史开发版本加一规则。没有标签时必须用 `-PversionName=` 覆盖，否则兜底成 `VersionNameError`。
 - 工作区不干净时 `--dirty` 会给标签加后缀，同样触发上面那个加一。打标签前先确认 `git status` 干净。
-- `versionCode` 固定为 `1003003000`（vc105 变体为 105）。它是给接入方 SDK 看的伪装版本号，SDK 要求不低于 105，与对外版本号无关，不随版本号递增。
+- `versionCode` 的唯一数值定义在 `push/build.gradle`。normal 保持接入方所需的版本范围，并为可覆盖更新单调递增；vc105 保留其兼容版本值。不要在门禁另存一份版本码。
 
 每个新发布标签必须有 `docs/release-notes/<tag>.md`，缺失或不符合格式时停止发布。正文从实际 APK 追加构建信息，产物命名与门禁见 [发布约定](docs/RELEASING.md)。
 
@@ -162,7 +162,7 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 
 `release.yml` 只在推送 `v*` 标签或手动指定已有标签时运行。工作流要求版本化说明，解码 `MIPUSH_KEYSTORE_BASE64`，构建 normal 与 vc105 签名 APK。`prepare_release.py` 核对证书与 v2 签名，提取实际包信息，生成规范命名的 APK、校验文件和构建信息表，再创建 Release。已有 Release 保持原样，历史附件不覆盖。带连字符的标签按预发布处理。
 
-本轮改造后的发布工作流尚未在 GitHub 执行，不能沿用旧工作流成功记录作为验收。
+当前发布工作流已用于 alpha.2，CI 与线上附件复核记录见 STATUS-011。这是产物证据，不代表后续 target 37 候选已经装机通过。
 
 `verify_apk_artifact.py` 校验的 minSdk 与 targetSdk 从根 `build.gradle` 读取，不再写死在脚本里。它们原先被复制了一份，界面批次把 minSdk 从 21 提到 23 之后那份副本就过期了，校验一直失败在最早的一步，后面那些检查根本没跑到。
 
