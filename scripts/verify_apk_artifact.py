@@ -34,13 +34,8 @@ def descriptor(name):
     return 'L' + name.replace('.', '/') + ';'
 
 
-def expected_sdks():
-    """Read the SDK levels from the root build script instead of repeating them.
-
-    They were hard-coded here once, and the assertion went stale the moment a later
-    batch raised minSdk from 21 to 23: the value lives one directory up, so the copy
-    is what silently rots.
-    """
+def expected_build_values():
+    """Read SDK levels and the normal version code from their build definitions."""
     text = (ROOT / 'build.gradle').read_text(encoding='utf-8')
 
     def level(name):
@@ -49,7 +44,11 @@ def expected_sdks():
             raise ValueError('Cannot read %s from the root build script' % name)
         return match.group(1)
 
-    return level('minSdkVersion'), level('targetSdkVersion')
+    codes = re.findall(r'^\s*versionCode\s+(\d+)\s*$',
+                       (ROOT / 'push/build.gradle').read_text(encoding='utf-8'), re.M)
+    if len(codes) != 1:
+        raise ValueError('Expected one literal default versionCode in push/build.gradle')
+    return level('minSdkVersion'), level('targetSdkVersion'), codes[0]
 
 
 def verify(apk, tools):
@@ -60,9 +59,9 @@ def verify(apk, tools):
 
     badging = tool('aapt2', 'dump', 'badging', apk)
     package = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging)
-    if not package or package.group(1, 2) != ('com.xiaomi.xmsf', '1003003000'):
-        raise ValueError('Package identity or normal variant versionCode changed')
-    min_sdk, target_sdk = expected_sdks()
+    min_sdk, target_sdk, version_code = expected_build_values()
+    if not package or package.group(1, 2) != ('com.xiaomi.xmsf', version_code):
+        raise ValueError('Package identity or configured normal variant versionCode mismatch')
     if (f"minSdkVersion:'{min_sdk}'" not in badging
             or f"targetSdkVersion:'{target_sdk}'" not in badging):
         raise ValueError(
