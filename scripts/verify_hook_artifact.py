@@ -24,6 +24,7 @@ ASPECTS = {
     'com.xiaomi.clientreport.manager.ClientReportClientAspect',
     'com.xiaomi.mipush.sdk.ManifestCheckerAspect',
     'com.xiaomi.network.FallbackAspect',
+    'com.xiaomi.push.service.PendingIntentAspect',
     'com.xiaomi.push.service.PushHostManagerFactoryAspect',
     'com.xiaomi.push.service.XMPushServiceAspect',
     'com.xiaomi.push.service.clientReport.PushClientReportManagerAspect',
@@ -40,6 +41,15 @@ BOUNDARIES = {
     ],
     'com/xiaomi/push/service/MiPushMessageDuplicate.class': ['isDuplicateMessage'],
     'com/xiaomi/push/service/MIPushNotificationHelper.class': ['notifyPushMessage'],
+}
+
+
+# Producers found in the retained SDK; each must call the mutability advice.
+PENDING_INTENT_OWNERS = {
+    'com/xiaomi/push/service/timers/AlarmManagerTimer.class',
+    'com/xiaomi/push/service/XMPushService.class',
+    'com/xiaomi/push/service/MIPushNotificationHelper.class',
+    'com/xiaomi/miui/pushads/sdk/NotifyAdsManagerNew.class',
 }
 
 
@@ -73,6 +83,9 @@ def verify(aar_path, sdk, javap):
     for name in BOUNDARIES:
         if sdk[name] == packaged[name]:
             raise ValueError(f'Existing SDK hook boundary was not changed: {name}')
+    for name in PENDING_INTENT_OWNERS:
+        if b'com/xiaomi/push/service/PendingIntentAspect' not in packaged[name]:
+            raise ValueError(f'Missing SDK PendingIntent advice in {name}')
     for name in ['Hook', 'com.nihility.Dependencies', 'com.nihility.HookedMethodHandler']:
         if name.replace('.', '/') + '.class' not in packaged:
             raise ValueError(f'Missing hook implementation: {name}')
@@ -107,6 +120,7 @@ def verify(aar_path, sdk, javap):
         'changed_sdk_classes': changed,
         'initialized_aspects': sorted(initialized),
         'verified_handler_invocations': BOUNDARIES,
+        'verified_pendingintent_owners': sorted(PENDING_INTENT_OWNERS),
         'scope': 'AAR structure only; not advice ordering, ART execution or delivery proof',
     }
 

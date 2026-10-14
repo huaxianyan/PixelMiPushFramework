@@ -268,7 +268,6 @@ public class MyMIPushNotificationHelper {
 
         if (localPendingIntent != null) {
             notificationBuilder.setContentIntent(localPendingIntent);
-            carryPendingIntentForTemporarilyWhitelisted(context, container, notificationBuilder);
         }
         return new NotificationInfo(notificationId, notificationBuilder);
     }
@@ -468,14 +467,6 @@ public class MyMIPushNotificationHelper {
         return personBuilder;
     }
 
-    private static void carryPendingIntentForTemporarilyWhitelisted(Context xmPushService, XmPushActionContainer buildContainer, NotificationCompat.Builder localBuilder) {
-        PushMetaInfo metaInfo = buildContainer.getMetaInfo();
-        // Also carry along the target PendingIntent, whose target will get temporarily whitelisted for background-activity-start upon sent.
-        final Intent targetIntent = buildTargetIntentWithoutExtras(buildContainer.getPackageName(), metaInfo);
-        final PendingIntent pi = PendingIntent.getService(xmPushService, 0, targetIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        localBuilder.getExtras().putParcelable("mipush.target", pi);
-    }
-
     public static int getNotificationId(XmPushActionContainer container) {
         final PushMetaInfo metaInfo = container.getMetaInfo();
         String id = metaInfo.isSetNotifyId() ? String.valueOf(metaInfo.getNotifyId()) : metaInfo.getId();
@@ -524,15 +515,10 @@ public class MyMIPushNotificationHelper {
 
             Intent sdkIntentJump = getSdkIntent(xmPushService, buildContainer);
             if (sdkIntentJump != null) {
-                PendingIntent pendingIntent = PendingIntent.getActivity(xmPushService, 0, sdkIntentJump, PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent pendingIntent = PendingIntent.getActivity(xmPushService, 0, sdkIntentJump, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                 localBuilder.addAction(new NotificationCompat.Action(i, "SDK Intent", pendingIntent));
             }
         }
-    }
-
-    public static Intent buildTargetIntentWithoutExtras(final String pkg, final PushMetaInfo metaInfo) {
-        return new Intent(PushConstants.MIPUSH_ACTION_NEW_MESSAGE).addCategory(String.valueOf(metaInfo.getNotifyId()))
-                .setClassName(pkg, CLASS_NAME_PUSH_MESSAGE_HANDLER);
     }
 
     private static PendingIntent openActivityPendingIntent(Context paramContext, XmPushActionContainer paramXmPushActionContainer, PushMetaInfo paramPushMetaInfo, byte[] paramArrayOfByte) {
@@ -541,7 +527,7 @@ public class MyMIPushNotificationHelper {
         Intent localIntent1 = packageManager.getLaunchIntentForPackage(packageName);
         if (localIntent1 != null) {
             localIntent1.addCategory(String.valueOf(paramPushMetaInfo.getNotifyId()));
-            return PendingIntent.getActivity(paramContext, 0, localIntent1, PendingIntent.FLAG_UPDATE_CURRENT);
+            return PendingIntent.getActivity(paramContext, 0, localIntent1, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
         return null;
     }
@@ -566,7 +552,7 @@ public class MyMIPushNotificationHelper {
             Intent intent = new Intent("android.intent.action.VIEW");
             intent.setData(Uri.parse(urlJump));
             intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-            return PendingIntent.getActivity(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            return PendingIntent.getActivity(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
 
         Intent intent = new Intent();
@@ -583,12 +569,12 @@ public class MyMIPushNotificationHelper {
         boolean useActivity = configuration.useClickedActivity(false);
         Intent activityIntent = getSdkIntent(context, container);
         if (!useActivity || activityIntent == null) {
-            return PendingIntent.getService(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            return PendingIntent.getService(context, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
         activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         activityIntent.putExtra("mipush_serviceIntent", intent);
         activityIntent.putExtras(intent);
-        return PendingIntent.getActivity(context, notificationId, activityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        return PendingIntent.getActivity(context, notificationId, activityIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /**
@@ -721,9 +707,9 @@ public class MyMIPushNotificationHelper {
         localIntent.putExtra(FROM_NOTIFICATION, true);
         localIntent.addCategory(String.valueOf(paramPushMetaInfo.getNotifyId()));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return PendingIntent.getForegroundService(paramContext, 0, localIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            return PendingIntent.getForegroundService(paramContext, 0, localIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         } else {
-            return PendingIntent.getService(paramContext, 0, localIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            return PendingIntent.getService(paramContext, 0, localIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
     }
 
@@ -763,7 +749,7 @@ public class MyMIPushNotificationHelper {
         if (metaExtra == null || (intent = getPendingIntentFromExtra(context, pkgName, place, metaExtra)) == null) {
             return null;
         }
-        return PendingIntent.getActivity(context, 0, intent, 0);
+        return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE);
     }
 
     private static Intent getPendingIntentFromExtra(Context context, String pkgName, int place, Map<String, String> extra) {

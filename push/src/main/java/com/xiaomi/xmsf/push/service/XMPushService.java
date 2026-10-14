@@ -5,8 +5,6 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.widget.Toast;
 
-import androidx.core.content.ContextCompat;
-
 import com.elvishew.xlog.Logger;
 import com.elvishew.xlog.XLog;
 import com.nihility.Global;
@@ -51,7 +49,7 @@ public class XMPushService extends IntentService {
         intent2.setComponent(new ComponentName(this, com.xiaomi.push.service.XMPushService.class));
         intent2.setAction(intent.getAction());
         intent2.putExtras(intent);
-        ContextCompat.startForegroundService(this, intent2);
+        PushControllerUtils.startPushService(this, intent2);
         logger.d("forward intent " + ConvertUtils.toJson(intent));
     }
 

@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-import androidx.core.content.ContextCompat;
+import com.xiaomi.xmsf.push.control.PushControllerUtils;
 
 import com.elvishew.xlog.Logger;
 import com.elvishew.xlog.XLog;
@@ -39,7 +39,7 @@ public class KeepAliveReceiver extends BroadcastReceiver {
             Intent localIntent = new Intent(context, com.xiaomi.push.service.XMPushService.class);
             localIntent.putExtra(PushServiceConstants.EXTRA_TIME_STAMP, now);
             localIntent.setAction(PushServiceConstants.ACTION_CHECK_ALIVE);
-            ContextCompat.startForegroundService(context, localIntent);
+            PushControllerUtils.startPushService(context, localIntent);
         } catch (Exception localException) {
             MyLog.e(localException);
         }

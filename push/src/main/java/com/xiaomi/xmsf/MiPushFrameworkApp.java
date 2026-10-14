@@ -115,7 +115,7 @@ public class MiPushFrameworkApp extends Application {
         Intent removeDozeActivityIntent = new Intent().setComponent(
                 new ComponentName(Constants.SERVICE_APP_NAME, Constants.REMOVE_DOZE_COMPONENT_NAME));
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
-                removeDozeActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                removeDozeActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_WARN)
                 .setContentInfo(getString(top.trumeet.common.R.string.wizard_title_doze_whitelist))
                 .setContentTitle(getString(top.trumeet.common.R.string.wizard_title_doze_whitelist))

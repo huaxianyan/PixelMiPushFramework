@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat;
 import com.elvishew.xlog.Logger;
 import com.elvishew.xlog.XLog;
 import com.oasisfeng.condom.CondomContext;
+import com.nihility.Global;
 import com.xiaomi.channel.commonutils.logger.MyLog;
 import com.xiaomi.channel.commonutils.misc.ScheduledJobManager;
 import com.xiaomi.mipush.sdk.MiPushClient;
@@ -111,6 +112,15 @@ public class PushControllerUtils {
         return false;
     }
 
+    /** Start with the same foreground policy used by the service lifecycle. */
+    public static void startPushService(Context context, Intent intent) {
+        if (Global.ConfigCenter().isStartForegroundService()) {
+            ContextCompat.startForegroundService(context, intent);
+        } else {
+            context.startService(intent);
+        }
+    }
+
     /**
      * Set XMPush sdk enable
      *
@@ -131,7 +141,7 @@ public class PushControllerUtils {
                 Intent serviceIntent = new Intent(context, com.xiaomi.push.service.XMPushService.class);
                 serviceIntent.putExtra(PushServiceConstants.EXTRA_TIME_STAMP, System.currentTimeMillis());
                 serviceIntent.setAction(PushServiceConstants.ACTION_TIMER);
-                ContextCompat.startForegroundService(context, serviceIntent);
+                startPushService(context, serviceIntent);
             } catch (Throwable e) {
                 logger.e(e);
             }

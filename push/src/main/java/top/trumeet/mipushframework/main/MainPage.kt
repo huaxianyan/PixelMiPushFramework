@@ -4,13 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,7 +29,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.xiaomi.xmsf.R
@@ -51,6 +45,7 @@ import top.trumeet.mipushframework.main.subpage.PackageEventsPage
 import top.trumeet.mipushframework.main.subpage.Settings
 import top.trumeet.mipushframework.main.subpage.SettingsPagePreview
 import top.trumeet.ui.theme.Theme
+import top.trumeet.ui.theme.Motion
 
 private const val PackageEventsRoutePrefix = "package_events"
 private const val PackageEventsRoute = "$PackageEventsRoutePrefix/{packageName}"
@@ -70,20 +65,28 @@ class MainPage : ComponentActivity() {
         }
         setContent {
             Main(Screen.Dashboard.route.toString()) { navController ->
-                composable(Screen.Dashboard.route.toString()) { Dashboard() }
+                composable(Screen.Dashboard.route.toString()) {
+                    MainTab(navController, Screen.Dashboard.route.toString()) { Dashboard() }
+                }
                 composable(Screen.Events.route.toString()) {
-                    PackageEventList { packageName ->
-                        navController.navigate(packageEventsRoute(packageName))
+                    MainTab(navController, Screen.Events.route.toString()) {
+                        PackageEventList { packageName ->
+                            navController.navigate(packageEventsRoute(packageName))
+                        }
                     }
                 }
                 composable(Screen.Apps.route.toString()) {
-                    Column {
-                        var query by rememberSaveable { mutableStateOf("") }
-                        SearchBar(stringResource(R.string.action_search)) { query = it }
-                        ApplicationList(query)
+                    MainTab(navController, Screen.Apps.route.toString()) {
+                        Column {
+                            var query by rememberSaveable { mutableStateOf("") }
+                            SearchBar(stringResource(R.string.action_search)) { query = it }
+                            ApplicationList(query)
+                        }
                     }
                 }
-                composable(Screen.Settings.route.toString()) { Settings() }
+                composable(Screen.Settings.route.toString()) {
+                    MainTab(navController, Screen.Settings.route.toString()) { Settings() }
+                }
                 composable(
                     route = PackageEventsRoute,
                     arguments = listOf(navArgument(PackageNameArgument) { type = NavType.StringType })
@@ -119,9 +122,7 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
             NavigationBarItem(
                 icon = { Icon(painterResource(id = screen.icon), contentDescription = null) },
                 label = { Text(name) },
-                selected = currentRoute == screen.route.toString() ||
-                        (screen is Screen.Events &&
-                                currentRoute?.startsWith(PackageEventsRoutePrefix) == true),
+                selected = currentRoute == screen.route.toString(),
                 onClick = {
                     navController.navigate(screen.route.toString()) {
                         popUpTo(navController.graph.startDestinationId) {
@@ -135,49 +136,41 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
     }
 }
 
-/**
- * The shell of the app: one top bar, one bottom bar, and the destination in between.
- *
- * A page that goes deeper than a tab ([Screen.Events] does) hides both of them and brings its
- * own back arrow, so there is never more than one navigation bar on screen.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Each destination owns its scaffold, so page motion includes its bars and keeps a stable viewport. */
 @Composable
 private fun Main(
     startDestination: String,
     navContent: NavGraphBuilder.(NavController) -> Unit
 ) {
     val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-    val isSecondaryPage = currentRoute?.startsWith(PackageEventsRoutePrefix) == true
-
     Theme {
-        Scaffold(
-            topBar = {
-                if (!isSecondaryPage) {
-                    TopAppBar(title = { Text(stringResource(R.string.app_name)) })
-                }
-            },
-            bottomBar = {
-                AnimatedVisibility(
-                    visible = !isSecondaryPage,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + slideOutVertically { height -> height / 2 } +
-                            shrinkVertically()
-                ) {
-                    BottomNavigationBar(navController, currentRoute)
-                }
-            }
-        ) { padding ->
-            NavHost(
-                navController = navController,
-                startDestination = startDestination,
-                modifier = Modifier.padding(padding)
-            ) {
-                navContent(navController)
-            }
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.fillMaxSize(),
+            enterTransition = Motion.Enter,
+            exitTransition = Motion.Exit,
+            popEnterTransition = Motion.PopEnter,
+            popExitTransition = Motion.PopExit
+        ) {
+            navContent(navController)
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainTab(
+    navController: NavController,
+    route: String,
+    content: @Composable () -> Unit
+) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
+        bottomBar = { BottomNavigationBar(navController, route) }
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding)) { content() }
     }
 }
 
@@ -187,8 +180,10 @@ private fun Main(
 )
 @Composable
 private fun MainDashboardPreview() {
-    Main(Screen.Dashboard.route.toString()) {
-        composable(Screen.Dashboard.route.toString()) { DashboardPreview() }
+    Main(Screen.Dashboard.route.toString()) { navController ->
+        composable(Screen.Dashboard.route.toString()) {
+            MainTab(navController, Screen.Dashboard.route.toString()) { DashboardPreview() }
+        }
         composable(Screen.Events.route.toString()) { }
         composable(Screen.Apps.route.toString()) { }
         composable(Screen.Settings.route.toString()) { }
@@ -201,9 +196,11 @@ private fun MainDashboardPreview() {
 )
 @Composable
 private fun MainEventsPreview() {
-    Main(Screen.Events.route.toString()) {
+    Main(Screen.Events.route.toString()) { navController ->
         composable(Screen.Dashboard.route.toString()) { }
-        composable(Screen.Events.route.toString()) { PackageEventListPreview() }
+        composable(Screen.Events.route.toString()) {
+            MainTab(navController, Screen.Events.route.toString()) { PackageEventListPreview() }
+        }
         composable(Screen.Apps.route.toString()) { }
         composable(Screen.Settings.route.toString()) { }
     }
@@ -215,14 +212,16 @@ private fun MainEventsPreview() {
 )
 @Composable
 private fun MainAppsPreview() {
-    Main(Screen.Apps.route.toString()) {
+    Main(Screen.Apps.route.toString()) { navController ->
         composable(Screen.Dashboard.route.toString()) { }
         composable(Screen.Events.route.toString()) { }
         composable(Screen.Apps.route.toString()) {
-            Column {
-                val onValueChange: (String) -> Unit = {}
-                SearchBar(stringResource(R.string.action_search), onValueChange)
-                ApplicationListPreview()
+            MainTab(navController, Screen.Apps.route.toString()) {
+                Column {
+                    val onValueChange: (String) -> Unit = {}
+                    SearchBar(stringResource(R.string.action_search), onValueChange)
+                    ApplicationListPreview()
+                }
             }
         }
         composable(Screen.Settings.route.toString()) { }
@@ -235,11 +234,13 @@ private fun MainAppsPreview() {
 )
 @Composable
 private fun MainSettingsPreview() {
-    Main(Screen.Settings.route.toString()) {
+    Main(Screen.Settings.route.toString()) { navController ->
         composable(Screen.Dashboard.route.toString()) { }
         composable(Screen.Events.route.toString()) { }
         composable(Screen.Apps.route.toString()) { }
-        composable(Screen.Settings.route.toString()) { SettingsPagePreview() }
+        composable(Screen.Settings.route.toString()) {
+            MainTab(navController, Screen.Settings.route.toString()) { SettingsPagePreview() }
+        }
     }
 }
 
@@ -249,9 +250,11 @@ private fun MainSettingsPreview() {
 )
 @Composable
 private fun MainDialogPreview() {
-    Main(Screen.Events.route.toString()) {
+    Main(Screen.Events.route.toString()) { navController ->
         composable(Screen.Dashboard.route.toString()) { }
-        composable(Screen.Events.route.toString()) { EventDetailsDialogPreview() }
+        composable(Screen.Events.route.toString()) {
+            MainTab(navController, Screen.Events.route.toString()) { EventDetailsDialogPreview() }
+        }
         composable(Screen.Apps.route.toString()) { }
         composable(Screen.Settings.route.toString()) { }
     }

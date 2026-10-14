@@ -1,7 +1,11 @@
 package top.trumeet.ui.theme
 
-import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.Easing
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.unit.IntOffset
+import androidx.navigation.NavBackStackEntry
 import androidx.compose.ui.unit.dp
 
 /**
@@ -40,20 +44,32 @@ object Layout {
     val StatusDot = 12.dp
 }
 
-/** Durations and easings shared by every animation, so transitions feel like one app. */
+/** Spatial page motion. NavHost seeks the same pop transitions during predictive back. */
 object Motion {
-    /** A control the user just touched, a switch row for instance. */
-    const val FeedbackMillis = 120
+    private const val BackgroundTravelFraction = 1f / 3f
+    private val Spatial = spring<IntOffset>()
 
-    /** Content appearing or disappearing inside a screen. */
-    const val ContentMillis = 200
+    val Enter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, Spatial)
+    }
 
-    /** A whole page entering or leaving. */
-    const val PageMillis = 260
+    val Exit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        slideOutOfContainer(
+            AnimatedContentTransitionScope.SlideDirection.Start,
+            Spatial,
+            targetOffset = { (it * BackgroundTravelFraction).toInt() }
+        )
+    }
 
-    /** Sideways travel of a pushed or popped page, as a fraction of the container width. */
-    const val PageTravelFraction = 0.18f
+    val PopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        slideIntoContainer(
+            AnimatedContentTransitionScope.SlideDirection.End,
+            Spatial,
+            initialOffset = { (it * BackgroundTravelFraction).toInt() }
+        )
+    }
 
-    val EnterEasing: Easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
-    val ExitEasing: Easing = CubicBezierEasing(0.4f, 0f, 1f, 1f)
+    val PopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, Spatial)
+    }
 }

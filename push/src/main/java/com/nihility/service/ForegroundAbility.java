@@ -1,5 +1,7 @@
 package com.nihility.service;
 
+import android.content.Intent;
+
 public class ForegroundAbility implements XMPushServiceListener {
     public final ForegroundHelper foregroundHelper;
 
@@ -9,6 +11,11 @@ public class ForegroundAbility implements XMPushServiceListener {
 
     @Override
     public void created() {
+        foregroundHelper.startForeground();
+    }
+
+    @Override
+    public void start(Intent intent) {
         foregroundHelper.startForeground();
     }
 

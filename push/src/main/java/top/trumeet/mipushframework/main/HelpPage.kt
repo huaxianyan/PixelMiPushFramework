@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +33,7 @@ import top.trumeet.mipushframework.component.NavigationRow
 import top.trumeet.mipushframework.component.PageColumn
 import top.trumeet.mipushframework.component.SettingsGroup
 import top.trumeet.ui.theme.Theme
+import top.trumeet.ui.theme.Motion
 import java.io.InputStreamReader
 
 /**
@@ -64,7 +66,15 @@ fun HelpHostPreview() {
 @Composable
 fun HelpHost(modifier: Modifier = Modifier, onBack: () -> Unit = {}) {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "list", modifier = modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = "list",
+        modifier = modifier.fillMaxSize(),
+        enterTransition = Motion.Enter,
+        exitTransition = Motion.Exit,
+        popEnterTransition = Motion.PopEnter,
+        popExitTransition = Motion.PopExit
+    ) {
         composable("list") { HelpList(navController, onBack) }
         composable("markdown/{markdownResId}") { backStackEntry ->
             val markdownResId = backStackEntry.arguments?.getString("markdownResId")?.toInt()

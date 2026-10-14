@@ -59,6 +59,8 @@ extra["mipushLib"] = mipushLib
 android {
     namespace = "com.nihility.mipush_hook"
     compileSdk = rootProject.extra["compileSdkVersion"] as Int
+    // The retained SDK references these platform types; AJC must resolve their real hierarchy.
+    useLibrary("org.apache.http.legacy", false)
 
     defaultConfig {
         minSdk = rootProject.extra["minSdkVersion"] as Int
