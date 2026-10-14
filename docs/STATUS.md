@@ -166,3 +166,17 @@
 - 版本化说明已准备，明确默认 Service 点击和局域网服务器限制。正式 Latest 保留 v1.0.1，master 不合入未验收代码
 - target 31 的安装、真实推送与直接点击结果一起纳入交接，和 target 37 结果分别记录，不用旧结果冒充新行为验收
 - 本条为发布前记录，CI、线上附件及实际设备结果完成后追加；卸载、清数据或签名切换不在授权范围内
+
+## STATUS-016：alpha.3 发布及 target 37 基础运行通过
+
+- [v1.1.0-alpha.3](https://github.com/huaxianyan/PixelMiPushFramework/releases/tag/v1.1.0-alpha.3) 已发布为 prerelease，标签固定在 566edf61c5b27c0ec1cded9b23e4f52336299f6c。分支 CI 38521880008 和发布 CI 38522870065 通过，正式 Latest 仍为 v1.0.1
+- 两个线上 APK 及 LF 校验文件已下载复核，源码提交、版本、大小、哈希、SDK、四种 ABI、长期证书及 v2 签名匹配。正文 37 行，未覆盖旧标签或附件
+- normal versionCode 1003003002，文件 13,892,750 字节，SHA-256 为 114b997131a47800372b5cae0257e33ef5c80a8b3cc5d223fb44adaaa3bb1304
+- vc105 versionCode 105，文件 13,892,737 字节，SHA-256 为 afb53fe0f1a4a5ba49d9706ab44de7a06d2ba285c35c538603c822c64e5afff5。vc105 仅作产物复核，没有装机
+- 本机直连设备现装 alpha.2 签名核对一致，使用线上 normal 附件覆盖成功。实际包版本 alpha.3、min／target 23／37。公开 Welcome 入口进入主页，首页已连接，已有应用及事件记录保留
+- 系统服务记录确认 target 37，前台类型为 specialUse。真实高级设置关闭保活后退出前台，再开启后恢复 specialUse，原开启状态已恢复。通知运行时权限当前已授予，没有把这个状态作为首次请求或拒绝恢复的验收
+- SDK 37 下心跳精确闹钟继续排期，许可来源为 allow-listed。当前设备已有省电及悬浮窗授权，本轮结果不代表无授权环境的后台恢复能力
+- 真实事件列表进入 QQ 详情，再按返回键回到事件列表，证明 API 37 下当前 AndroidX 返回分发可用；三键导航未验证手势取消或视觉进度，也未读取截图
+- 当前采样没有本应用 crash buffer 记录。固定设备 UI 临时文件逐次删除并确认不存在，未卸载、清数据或重启
+- 内置模拟通知使用 Activity PendingIntent，不能用它冒充默认 Service 路径证据，因此没有执行该替代测试。SDK 37 的新消息及点击仍等待用户从另一端触发，不能沿用 STATUS-013 的 target 31 结果
+- 默认 Service 点击、独立注册／ACK、通知拒绝后恢复、首次省电授权、后台回收恢复、同格式更新备份、预测性返回和局域网自定义服务器仍有待验收／适配项。整体验收尚未通过，master 不合入
