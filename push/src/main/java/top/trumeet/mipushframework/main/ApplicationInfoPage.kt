@@ -7,11 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION_CODES
-import android.os.Bundle
 import android.provider.Settings
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.Image
@@ -66,45 +62,25 @@ import top.trumeet.mipushframework.component.SettingsRow
 import top.trumeet.ui.theme.Layout
 import top.trumeet.ui.theme.Theme
 
-class ApplicationInfoPage : ComponentActivity() {
-    companion object {
-        const val EXTRA_PACKAGE_NAME: String = "EXTRA_PACKAGE_NAME"
-        const val EXTRA_IGNORE_NOT_REGISTERED: String = "EXTRA_IGNORE_NOT_REGISTERED"
-    }
-
-    private lateinit var applicationInfo: RegisteredApplication
-    private lateinit var appConfigurationUtils: AppConfigurationUtils
-
-    fun init(applicationInfo: RegisteredApplication) {
-        this.applicationInfo = applicationInfo
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        init(getRegisteredApplication()!!)
-        setContent {
-            SettingsApp(onBack = { finish() })
-        }
-    }
-
-    private fun getRegisteredApplication(): RegisteredApplication? {
-        if (intent.hasExtra(EXTRA_PACKAGE_NAME)) {
-            val pkg = intent.getStringExtra(EXTRA_PACKAGE_NAME)
-            var application = RegisteredApplicationDb.getRegisteredApplication(pkg)
-
-            if (application == null &&
-                intent.getBooleanExtra(EXTRA_IGNORE_NOT_REGISTERED, false)
-            ) {
-                application =
-                    RegisteredApplication()
-                application.packageName = pkg
-                application.registeredType = RegisteredType.NotRegistered
+@Composable
+fun ApplicationInfoPage(packageName: String, ignoreNotRegistered: Boolean, onBack: () -> Unit) {
+    val application = remember(packageName, ignoreNotRegistered) {
+        RegisteredApplicationDb.getRegisteredApplication(packageName)
+            ?: if (ignoreNotRegistered) {
+                RegisteredApplication().apply {
+                    this.packageName = packageName
+                    registeredType = RegisteredType.NotRegistered
+                }
+            } else {
+                error("Registered application not found: $packageName")
             }
-            return application
-        }
-        return null
     }
+    val content = remember(application) { ApplicationInfoContent(application) }
+    content.SettingsApp(onBack)
+}
+
+private class ApplicationInfoContent(private val applicationInfo: RegisteredApplication) {
+    private lateinit var appConfigurationUtils: AppConfigurationUtils
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -234,10 +210,11 @@ class ApplicationInfoPage : ComponentActivity() {
 
     @Composable
     private fun RecentEvents() {
+        val navigate = LocalPageNavigation.current
         NavigationRow(
             title = stringResource(R.string.recent_activity_view)
         ) {
-            appConfigurationUtils.gotoRecentEventsPage()
+            navigate(Pages.recent(applicationInfo.packageName))
         }
     }
 
@@ -408,7 +385,5 @@ private fun SettingsPreview() {
     val app = RegisteredApplication()
     app.packageName = BuildConfig.APPLICATION_ID
     app.appName = "test app"
-    val page = ApplicationInfoPage()
-    page.init(app)
-    page.SettingsApp()
+    ApplicationInfoContent(app).SettingsApp()
 }

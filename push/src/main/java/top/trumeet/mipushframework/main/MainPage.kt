@@ -19,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,12 +54,6 @@ import top.trumeet.ui.theme.Theme
 import top.trumeet.ui.theme.Motion
 
 private const val MainTabsRoute = "main_tabs"
-private const val PackageEventsRoutePrefix = "package_events"
-private const val PackageEventsRoute = "$PackageEventsRoutePrefix/{packageName}"
-private const val PackageNameArgument = "packageName"
-
-private fun packageEventsRoute(packageName: String) = "$PackageEventsRoutePrefix/$packageName"
-
 private val mainPageUtils1 = MainPageUtils()
 
 class MainPage : ComponentActivity() {
@@ -74,7 +69,7 @@ class MainPage : ComponentActivity() {
                 composable(Screen.Dashboard.route.toString()) { Dashboard() }
                 composable(Screen.Events.route.toString()) {
                     PackageEventList { packageName ->
-                        navController.navigate(packageEventsRoute(packageName))
+                        navController.navigate(Pages.events(packageName))
                     }
                 }
                 composable(Screen.Apps.route.toString()) {
@@ -133,26 +128,59 @@ private fun Main(
 ) {
     val navController = rememberNavController()
     Theme {
-        NavHost(
-            navController = navController,
-            startDestination = MainTabsRoute,
-            modifier = Modifier.fillMaxSize(),
-            enterTransition = Motion.Enter,
-            exitTransition = Motion.Exit,
-            popEnterTransition = Motion.PopEnter,
-            popExitTransition = Motion.PopExit
-        ) {
-            composable(MainTabsRoute) {
-                MainTabs(startDestination) { navContent(navController) }
-            }
-            composable(
-                route = PackageEventsRoute,
-                arguments = listOf(navArgument(PackageNameArgument) { type = NavType.StringType })
-            ) { entry ->
-                PackageEventsPage(
-                    packageName = entry.arguments?.getString(PackageNameArgument).orEmpty(),
-                    onBack = { navController.popBackStack() }
-                )
+        CompositionLocalProvider(LocalPageNavigation provides { route -> navController.navigate(route) }) {
+            NavHost(
+                navController = navController,
+                startDestination = MainTabsRoute,
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = Motion.Enter,
+                exitTransition = Motion.Exit,
+                popEnterTransition = Motion.PopEnter,
+                popExitTransition = Motion.PopExit
+            ) {
+                composable(MainTabsRoute) {
+                    MainTabs(startDestination) { navContent(navController) }
+                }
+                composable(
+                    route = Pages.Events,
+                    arguments = listOf(navArgument(Pages.PackageName) { type = NavType.StringType })
+                ) { entry ->
+                    PackageEventsPage(
+                        packageName = requireNotNull(entry.arguments?.getString(Pages.PackageName)),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Pages.Advanced) {
+                    AdvancedSettings(onBack = { navController.popBackStack() })
+                }
+                composable(Pages.Help) {
+                    HelpHost(onBack = { navController.popBackStack() })
+                }
+                composable(
+                    Pages.Application,
+                    arguments = listOf(
+                        navArgument(Pages.PackageName) { type = NavType.StringType },
+                        navArgument(Pages.IgnoreNotRegistered) {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        }
+                    )
+                ) { entry ->
+                    ApplicationInfoPage(
+                        packageName = requireNotNull(entry.arguments?.getString(Pages.PackageName)),
+                        ignoreNotRegistered = entry.arguments?.getBoolean(Pages.IgnoreNotRegistered) == true,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    Pages.Recent,
+                    arguments = listOf(navArgument(Pages.PackageName) { type = NavType.StringType })
+                ) { entry ->
+                    RecentEventList(
+                        packageName = requireNotNull(entry.arguments?.getString(Pages.PackageName)),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }
@@ -177,8 +205,8 @@ private fun MainTabs(
             startDestination = startDestination,
             modifier = Modifier.fillMaxSize().padding(padding)
                 .consumeWindowInsets(padding).imePadding(),
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
+            enterTransition = { Motion.TabEnter },
+            exitTransition = { Motion.TabExit },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None },
             builder = navContent

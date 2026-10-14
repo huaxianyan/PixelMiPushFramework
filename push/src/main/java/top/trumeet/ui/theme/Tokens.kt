@@ -3,6 +3,8 @@ package top.trumeet.ui.theme
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.spring
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavBackStackEntry
@@ -48,6 +50,10 @@ object Layout {
 object Motion {
     private const val BackgroundTravelFraction = 1f / 3f
     private val Spatial = spring<IntOffset>()
+
+    // Same-level tab effects never participate in a seekable hierarchy return.
+    val TabEnter = fadeIn()
+    val TabExit = fadeOut()
 
     val Enter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, Spatial)

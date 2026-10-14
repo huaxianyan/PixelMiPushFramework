@@ -40,14 +40,14 @@ class AdvancedSettingsPage : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SettingsApp(onBack = { finish() })
+            AdvancedSettings(onBack = { finish() })
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsApp(onBack: () -> Unit) {
+fun AdvancedSettings(onBack: () -> Unit) {
     Theme {
         Scaffold(
             topBar = {

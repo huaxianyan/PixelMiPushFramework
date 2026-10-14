@@ -5,7 +5,6 @@ import android.app.NotificationChannelGroup;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.provider.Settings;
 import android.text.TextUtils;
 
@@ -54,12 +53,6 @@ public class AppConfigurationUtils {
         if (pkgsEqual.contains(pkg))
             return true;
         return false;
-    }
-
-    void gotoRecentEventsPage() {
-        context.startActivity(
-                new Intent(context, RecentEventListPage.class)
-                        .setData(Uri.parse(application.getPackageName())));
     }
 
     void gotoNotificationSettingPage() {

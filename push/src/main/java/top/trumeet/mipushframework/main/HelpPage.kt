@@ -4,10 +4,6 @@ package top.trumeet.mipushframework.main
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -32,26 +28,8 @@ import top.trumeet.mipushframework.component.MarkdownView
 import top.trumeet.mipushframework.component.NavigationRow
 import top.trumeet.mipushframework.component.PageColumn
 import top.trumeet.mipushframework.component.SettingsGroup
-import top.trumeet.ui.theme.Theme
 import top.trumeet.ui.theme.Motion
 import java.io.InputStreamReader
-
-/**
- * The help page is drawn entirely in Compose, so it is a plain [ComponentActivity]: an
- * AppCompat activity would put the system action bar on top of the Compose top bar and the
- * activity label would show up twice.
- */
-class HelpPage : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            Theme {
-                HelpHost(onBack = { finish() })
-            }
-        }
-    }
-}
 
 @Preview(
     showSystemUi = true,

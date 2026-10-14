@@ -35,6 +35,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.elvishew.xlog.XLog
 import com.xiaomi.xmsf.R
+import top.trumeet.mipushframework.main.LocalPageNavigation
+import top.trumeet.mipushframework.main.Pages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -155,6 +157,7 @@ private fun Footer(notUseMiPushCount: Int) {
 @Composable
 private fun ApplicationItem(item: RegisteredApplication) {
     val context = LocalContext.current
+    val navigate = LocalPageNavigation.current
     val info = g_itemsInfo[item.packageName]
     val state = info?.registrationState
     val stateColor = state?.second ?: MaterialTheme.colorScheme.onSurface
@@ -162,11 +165,7 @@ private fun ApplicationItem(item: RegisteredApplication) {
 
     Card(
         onClick = {
-            EventListPageUtils.startManagePermissions(
-                context,
-                item.packageName,
-                true
-            )
+            navigate(Pages.application(item.packageName, ignoreNotRegistered = true))
         },
         modifier = Modifier.fillMaxWidth()
     ) {

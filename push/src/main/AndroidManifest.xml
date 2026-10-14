@@ -90,19 +90,6 @@
                 android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
                 android:theme="@style/Theme.NotificationClick" />
 
-        <activity
-                android:name="top.trumeet.mipushframework.main.ApplicationInfoPage"
-                android:configChanges="screenLayout|screenSize|orientation" />
-
-        <activity
-                android:name="top.trumeet.mipushframework.main.RecentEventListPage"
-                android:label="@string/recent_activity_title"
-                android:windowSoftInputMode="adjustResize" />
-        <activity
-                android:name="top.trumeet.mipushframework.main.HelpPage"
-                android:label="@string/helplib_title"
-                android:theme="@style/AppTheme" />
-
         <provider
                 android:name="androidx.core.content.FileProvider"
                 android:authorities="top.trumeet.mipushframework.fileprovider"

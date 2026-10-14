@@ -44,8 +44,8 @@ import top.trumeet.mipushframework.component.NavigationRow
 import top.trumeet.mipushframework.component.PageColumn
 import top.trumeet.mipushframework.component.SettingsGroup
 import top.trumeet.mipushframework.component.SettingsItem
-import top.trumeet.mipushframework.main.AdvancedSettingsPage
-import top.trumeet.mipushframework.main.HelpPage
+import top.trumeet.mipushframework.main.LocalPageNavigation
+import top.trumeet.mipushframework.main.Pages
 import top.trumeet.mipushframework.utils.ConfigurationDirectoryUtils
 import top.trumeet.ui.theme.Theme
 
@@ -63,13 +63,14 @@ fun Settings() {
 @Composable
 private fun ServiceConfigurationBlock() {
     val context = LocalContext.current
+    val navigate = LocalPageNavigation.current
 
     SettingsGroup(title = stringResource(R.string.settings_service_setting)) {
         NavigationRow(
             title = stringResource(R.string.settings_service_advance_setting),
             summary = stringResource(R.string.settings_summary_service_advance_setting)
         ) {
-            context.startActivity(Intent(context, AdvancedSettingsPage::class.java))
+            navigate(Pages.Advanced)
         }
 
         SetConfigurationsDirectory()
@@ -212,6 +213,7 @@ private fun DebugBlock() {
 @Composable
 private fun AboutBlock() {
     val context = LocalContext.current
+    val navigate = LocalPageNavigation.current
     val mainPageOperation = MainPageOperation(context)
     var showAbout by remember { mutableStateOf(false) }
 
@@ -223,7 +225,7 @@ private fun AboutBlock() {
         NavigationRow(
             title = stringResource(R.string.helplib_title)
         ) {
-            context.startActivity(Intent(context, HelpPage::class.java))
+            navigate(Pages.Help)
         }
 
         NavigationRow(

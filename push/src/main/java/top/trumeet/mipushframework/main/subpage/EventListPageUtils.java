@@ -33,7 +33,6 @@ import top.trumeet.common.utils.CustomConfiguration;
 import top.trumeet.common.utils.Utils;
 import top.trumeet.mipush.provider.db.EventDb;
 import top.trumeet.mipush.provider.entities.Event;
-import top.trumeet.mipushframework.main.ApplicationInfoPage;
 
 public class EventListPageUtils {
     private final Context context;
@@ -125,20 +124,6 @@ public class EventListPageUtils {
                 .setPrettyPrinting()
                 .create();
         return gson.toJson(ConvertUtils.toJson(container, regSec));
-    }
-
-    public static void startManagePermissions(Context context, String packageName) {
-        startManagePermissions(context, packageName, false);
-    }
-
-    public static void startManagePermissions(Context context, String packageName, boolean IGNORE_NOT_REGISTERED) {
-        // Issue: This currently allows overlapping opens.
-        Intent intent = new Intent(context, ApplicationInfoPage.class)
-                .putExtra(ApplicationInfoPage.EXTRA_PACKAGE_NAME, packageName);
-        if (IGNORE_NOT_REGISTERED) {
-            intent.putExtra(ApplicationInfoPage.EXTRA_IGNORE_NOT_REGISTERED, true);
-        }
-        context.startActivity(intent);
     }
 
     public static String getDecoratedSummary(String summary, XmPushActionContainer container) {

@@ -1,9 +1,5 @@
 package top.trumeet.mipushframework.main
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
@@ -27,20 +23,6 @@ import com.xiaomi.xmsf.R
 import top.trumeet.mipushframework.component.SearchBar
 import top.trumeet.mipushframework.main.subpage.EventList
 import top.trumeet.ui.theme.Theme
-
-class RecentEventListPage : ComponentActivity() {
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        val packageName = intent.dataString!!
-        setContent {
-            Theme {
-                RecentEventList(packageName, onBack = { finish() })
-            }
-        }
-    }
-}
 
 /** The recent activity of one application, opened from that application's own page. */
 @OptIn(ExperimentalMaterial3Api::class)

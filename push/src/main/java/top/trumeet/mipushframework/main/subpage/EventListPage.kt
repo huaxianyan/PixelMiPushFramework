@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.elvishew.xlog.XLog
 import com.xiaomi.xmsf.R
+import top.trumeet.mipushframework.main.LocalPageNavigation
+import top.trumeet.mipushframework.main.Pages
 import com.xiaomi.xmsf.push.utils.RegSecUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -130,6 +132,7 @@ private fun EventDetailsDialog(
     }
     val context = LocalContext.current
 
+    val navigate = LocalPageNavigation.current
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val targetHeight = screenHeight * 0.9f
 
@@ -175,10 +178,8 @@ private fun EventDetailsDialog(
                 )
 
                 TextButton({
-                    EventListPageUtils.startManagePermissions(
-                        context,
-                        clickedEvent.packageName
-                    )
+                    onDismiss()
+                    navigate(Pages.application(clickedEvent.packageName))
                 }) { Text(stringResource(R.string.action_app_info)) }
             }
         },
