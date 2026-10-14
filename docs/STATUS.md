@@ -112,3 +112,14 @@
 - 构建文件移除没有对应二进制的旧 armeabi 声明。ABI 名单只有构建文件一份，未签名检查及发布整理共用 apk_abi.py，检查实际架构及各架构库覆盖一致
 - 完整多架构包继续命名 universal，构建信息列出实际 ABI。包名、SDK、版本号和长期签名检查保持原样，没有取消架构门禁
 - alpha.2 保留相同审计范围和未验收声明，normal versionCode 为 1003003001，vc105 为 105。此条是准备记录，实际发布与线上复核完成后追加结果
+
+## STATUS-011：alpha.2 已发布并复核
+
+- [v1.1.0-alpha.2](https://github.com/huaxianyan/PixelMiPushFramework/releases/tag/v1.1.0-alpha.2) 已公开为 prerelease，源码标签固定在 49e5b1b58759e05333809925948ad482d08c01fa。alpha.1 失败标签保留，没有覆盖任何历史 Release
+- 分支 CI 38510220171 及发布 CI 38511072297 均成功。正式 Latest 仍为 v1.0.1，master 未合入未验收代码
+- 线上附件已下载复核，共 normal／vc105 两个 APK 及同名 LF 校验文件。实际包名 com.xiaomi.xmsf，版本 1.1.0-alpha.2，min／target SDK 为 23／31，均为非调试包，v2 签名及长期证书匹配
+- normal versionCode 1003003001，文件 13,875,143 字节，SHA-256 为 b12a9108abe3020decf9b9c56eeb82d2e414a74e4b17e22a660dff2b57dcafff
+- vc105 versionCode 105，文件 13,875,146 字节，SHA-256 为 038a4fde36de1b701d6c92e8be0bd9315c9fa37d6ecf13d825cd26ba5d9dff5c
+- 两个 APK 的四种实际 ABI 均完整，构建信息与实际包匹配。Release 正文 33 行，标题只用标签，签名证书与源码提交均已展示
+- 新增 ABI 归档检查模块测试通过，夹具只验证归档布局，不是 ELF 加载或 ART 运行证据。真实 APK 的完整性、架构及签名由 CI 和线上下载复核分别确认
+- 设备安装与验收仍未授权，当前没有安装动作。target 31 的默认 Service 通知点击、首次授权后调度、后台恢复、真实推送及导航手势继续待验收，暂不升 target 33
