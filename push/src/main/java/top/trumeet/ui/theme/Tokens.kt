@@ -5,7 +5,9 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavBackStackEntry
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,8 @@ object Layout {
 object Motion {
     private const val BackgroundTravelFraction = 1f / 3f
     private val Spatial = spring<IntOffset>()
+    // NavHost seeks elapsed time, so return displacement must not front-load like a spring.
+    private val ReturnSpatial = tween<IntOffset>(durationMillis = 260, easing = LinearEasing)
 
     // Same-level tab effects never participate in a seekable hierarchy return.
     val TabEnter = fadeIn()
@@ -70,12 +74,12 @@ object Motion {
     val PopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         slideIntoContainer(
             AnimatedContentTransitionScope.SlideDirection.End,
-            Spatial,
+            ReturnSpatial,
             initialOffset = { (it * BackgroundTravelFraction).toInt() }
         )
     }
 
     val PopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, Spatial)
+        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, ReturnSpatial)
     }
 }
