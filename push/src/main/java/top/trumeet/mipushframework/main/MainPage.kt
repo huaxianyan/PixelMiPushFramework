@@ -2,10 +2,11 @@ package top.trumeet.mipushframework.main
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
@@ -23,6 +24,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -30,11 +35,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
-import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.xiaomi.xmsf.R
@@ -65,21 +68,19 @@ class MainPage : ComponentActivity() {
             ConnectionStatusHolder.update(status, host)
         }
         setContent {
-            Main(Screen.Dashboard.route.toString()) { navController ->
-                composable(Screen.Dashboard.route.toString()) { Dashboard() }
-                composable(Screen.Events.route.toString()) {
-                    PackageEventList { packageName ->
+            Main(Screen.Dashboard.route) { tab, navController ->
+                when (tab) {
+                    Screen.Dashboard.route -> Dashboard()
+                    Screen.Events.route -> PackageEventList { packageName ->
                         navController.navigate(Pages.events(packageName))
                     }
-                }
-                composable(Screen.Apps.route.toString()) {
-                    Column {
+                    Screen.Apps.route -> Column {
                         var query by rememberSaveable { mutableStateOf("") }
                         SearchBar(stringResource(R.string.action_search)) { query = it }
                         ApplicationList(query)
                     }
+                    Screen.Settings.route -> Settings()
                 }
-                composable(Screen.Settings.route.toString()) { Settings() }
             }
         }
     }
@@ -95,7 +96,7 @@ private sealed class Screen(val route: Int, val icon: Int) {
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
+private fun BottomNavigationBar(selectedTab: Int, onSelect: (Int) -> Unit) {
     val items = listOf(
         Screen.Dashboard, Screen.Events, Screen.Apps, Screen.Settings
     )
@@ -106,16 +107,8 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
             NavigationBarItem(
                 icon = { Icon(painterResource(id = screen.icon), contentDescription = null) },
                 label = { Text(name) },
-                selected = currentRoute == screen.route.toString(),
-                onClick = {
-                    navController.navigate(screen.route.toString()) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                })
+                selected = selectedTab == screen.route,
+                onClick = { onSelect(screen.route) })
         }
     }
 }
@@ -123,8 +116,8 @@ fun BottomNavigationBar(navController: NavController, currentRoute: String?) {
 /** Only hierarchy changes move the full viewport; the tab shell is one root destination. */
 @Composable
 private fun Main(
-    startDestination: String,
-    navContent: NavGraphBuilder.(NavController) -> Unit
+    startDestination: Int,
+    content: @Composable (Int, NavController) -> Unit
 ) {
     val navController = rememberNavController()
     Theme {
@@ -139,7 +132,7 @@ private fun Main(
                 popExitTransition = Motion.PopExit
             ) {
                 composable(MainTabsRoute) {
-                    MainTabs(startDestination) { navContent(navController) }
+                    MainTabs(startDestination) { tab -> content(tab, navController) }
                 }
                 composable(
                     route = Pages.Events,
@@ -186,31 +179,36 @@ private fun Main(
     }
 }
 
-/** Same-level selection keeps both bars stationary and restores each tab's navigation state. */
+/** Peer selections own saved content state, not a second hierarchy back stack. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainTabs(
-    startDestination: String,
-    navContent: NavGraphBuilder.() -> Unit
+    startDestination: Int,
+    content: @Composable (Int) -> Unit
 ) {
-    val navController = rememberNavController()
-    val entry by navController.currentBackStackEntryAsState()
+    var selectedTab by rememberSaveable { mutableStateOf(startDestination) }
+    val stateHolder = rememberSaveableStateHolder()
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    // A previewed root is STARTED: only the resumed root may handle peer-to-home Back.
+    BackHandler(
+        enabled = lifecycleState == Lifecycle.State.RESUMED && selectedTab != Screen.Dashboard.route
+    ) {
+        selectedTab = Screen.Dashboard.route
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
-        bottomBar = { BottomNavigationBar(navController, entry?.destination?.route) }
+        bottomBar = { BottomNavigationBar(selectedTab) { selectedTab = it } }
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
+        AnimatedContent(
+            targetState = selectedTab,
             modifier = Modifier.fillMaxSize().padding(padding)
                 .consumeWindowInsets(padding).imePadding(),
-            enterTransition = { Motion.TabEnter },
-            exitTransition = { Motion.TabExit },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None },
-            builder = navContent
-        )
+            transitionSpec = { Motion.TabEnter togetherWith Motion.TabExit },
+            label = "main_tab"
+        ) { tab ->
+            stateHolder.SaveableStateProvider(tab) { content(tab) }
+        }
     }
 }
 
@@ -220,13 +218,8 @@ private fun MainTabs(
 )
 @Composable
 private fun MainDashboardPreview() {
-    Main(Screen.Dashboard.route.toString()) { _ ->
-        composable(Screen.Dashboard.route.toString()) {
-            DashboardPreview()
-        }
-        composable(Screen.Events.route.toString()) { }
-        composable(Screen.Apps.route.toString()) { }
-        composable(Screen.Settings.route.toString()) { }
+    Main(Screen.Dashboard.route) { tab, _ ->
+        if (tab == Screen.Dashboard.route) DashboardPreview()
     }
 }
 
@@ -236,13 +229,8 @@ private fun MainDashboardPreview() {
 )
 @Composable
 private fun MainEventsPreview() {
-    Main(Screen.Events.route.toString()) { _ ->
-        composable(Screen.Dashboard.route.toString()) { }
-        composable(Screen.Events.route.toString()) {
-            PackageEventListPreview()
-        }
-        composable(Screen.Apps.route.toString()) { }
-        composable(Screen.Settings.route.toString()) { }
+    Main(Screen.Events.route) { tab, _ ->
+        if (tab == Screen.Events.route) PackageEventListPreview()
     }
 }
 
@@ -252,17 +240,14 @@ private fun MainEventsPreview() {
 )
 @Composable
 private fun MainAppsPreview() {
-    Main(Screen.Apps.route.toString()) { _ ->
-        composable(Screen.Dashboard.route.toString()) { }
-        composable(Screen.Events.route.toString()) { }
-        composable(Screen.Apps.route.toString()) {
+    Main(Screen.Apps.route) { tab, _ ->
+        if (tab == Screen.Apps.route) {
             Column {
                 val onValueChange: (String) -> Unit = {}
                 SearchBar(stringResource(R.string.action_search), onValueChange)
                 ApplicationListPreview()
             }
         }
-        composable(Screen.Settings.route.toString()) { }
     }
 }
 
@@ -272,13 +257,8 @@ private fun MainAppsPreview() {
 )
 @Composable
 private fun MainSettingsPreview() {
-    Main(Screen.Settings.route.toString()) { _ ->
-        composable(Screen.Dashboard.route.toString()) { }
-        composable(Screen.Events.route.toString()) { }
-        composable(Screen.Apps.route.toString()) { }
-        composable(Screen.Settings.route.toString()) {
-            SettingsPagePreview()
-        }
+    Main(Screen.Settings.route) { tab, _ ->
+        if (tab == Screen.Settings.route) SettingsPagePreview()
     }
 }
 
@@ -288,12 +268,7 @@ private fun MainSettingsPreview() {
 )
 @Composable
 private fun MainDialogPreview() {
-    Main(Screen.Events.route.toString()) { _ ->
-        composable(Screen.Dashboard.route.toString()) { }
-        composable(Screen.Events.route.toString()) {
-            EventDetailsDialogPreview()
-        }
-        composable(Screen.Apps.route.toString()) { }
-        composable(Screen.Settings.route.toString()) { }
+    Main(Screen.Events.route) { tab, _ ->
+        if (tab == Screen.Events.route) EventDetailsDialogPreview()
     }
 }
