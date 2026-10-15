@@ -2,7 +2,7 @@
 
 ## 当前范围
 
-构建链路与界面改造均已完成。本仓库自 1.0.0 起启用独立版本线，不再沿用上游的 0.3.x 编号；正式基线仍见 master，当前 Android 17 主题分支直接构建 target 37 候选，运行验收状态见 `docs/STATUS.md`。
+构建链路与界面改造均已完成。本仓库自 1.0.0 起启用独立版本线，不再沿用上游的 0.3.x 编号。Android 17 改动已合入 master 并发布 v1.1.0，运行验收状态见 [交接记录](docs/STATUS.md)，换机准备见 [换机交接](docs/HANDOFF.md)。
 
 | 项目 | 当前配置 |
 |---|---|
@@ -144,7 +144,7 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 - 旧 API、Compose 和 SDK XML 版本告警尚未全部处理
 - 构建现代化批次完成了 D8／打包、静态检查和签名核对。该批次没有验证 ART、设备运行或真实推送。后续单设备验收的历史结论与限制见 [交接记录](docs/STATUS.md)
 - D8 转换仍出现旧 SDK 缺少 StackMap 表的告警，未屏蔽，也未用 `-noverify` 绕过 APK 构建
-- 当前主题分支直接使用 target 37；compileSdk 暂留 36，本轮代码只使用该平台已有的公开 API，工具链升级另行实施
+- v1.1.0 基线使用 target 37，compileSdk 暂留 36，当前代码只使用该平台已有的公开 API。工具链升级另行实施，实际版本参数以构建文件为准
 
 ## 版本号
 
@@ -162,7 +162,7 @@ Compose 侧的动态取色本就已接入：`top.trumeet.ui.theme.Theme` 在 And
 
 `release.yml` 只在推送 `v*` 标签或手动指定已有标签时运行。工作流要求版本化说明，解码 `MIPUSH_KEYSTORE_BASE64`，构建 normal 与 vc105 签名 APK。`prepare_release.py` 核对证书与 v2 签名，提取实际包信息，生成规范命名的 APK、校验文件和构建信息表，再创建 Release。已有 Release 保持原样，历史附件不覆盖。带连字符的标签按预发布处理。
 
-当前发布工作流已用于 alpha.2，CI 与线上附件复核记录见 STATUS-011。这是产物证据，不代表后续 target 37 候选已经装机通过。
+当前发布工作流已完成 v1.1.0 正式发布，两种变体的线上附件核对见 STATUS-038。alpha.8 的业务与动效验收见历史 STATUS-036。正式版本轮没有装机，不将产物检查当作新的运行验收。
 
 `verify_apk_artifact.py` 校验的 minSdk 与 targetSdk 从根 `build.gradle` 读取，不再写死在脚本里。它们原先被复制了一份，界面批次把 minSdk 从 21 提到 23 之后那份副本就过期了，校验一直失败在最早的一步，后面那些检查根本没跑到。
 
