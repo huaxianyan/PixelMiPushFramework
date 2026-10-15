@@ -2,7 +2,7 @@
 
 ## 当前主线
 
-正式基线为 `v1.1.0`。`feat/module-controls` 正与 PixelMiPush 联合开发首页模块状态和「模块设置」次级页面，源码与验证结果见 STATUS-041。候选尚未发布或装机，现有正式产物和已验收业务保持原样。
+正式基线为 `v1.1.0`。`feat/module-controls` 正与 PixelMiPush 联合开发首页模块状态和「模块设置」次级页面，源码与本地验证见 STATUS-041，分支推送及 CI 结果见 STATUS-042。候选尚未发布或装机，现有正式产物和已验收业务保持原样。
 
 ## 接手入口
 
@@ -53,3 +53,12 @@
 - 保留一条真实页面测试，覆盖三个独立选择及其他选择保留、宿主同步确认和原设置恢复。测试仅编译，未执行；命令、依赖和边界见 [模块状态与设置](MODULE-CONTROL.md)
 - 新文档的文案、资源对应关系、XML 和差异空白检查通过。当前没有 YAML 解析器，新增共用 Action 仅作人工语法核对，线上 CI 未运行
 - 两仓库保留本地主题提交，尚未推送。未安装、发布、重启、恢复签名或操作设备。首页状态、页面观感、三个开关的真实通知效果及重启后恢复仍待单独授权验收；不以本地编译代替推送或 SystemUI 运行证据
+
+## STATUS-042：主题分支已推送，框架 CI 通过
+
+- 日期：2026-10-15。用户授权推进分支推送和 CI 验证，未授权发布或设备操作
+- 先推送 PixelMiPush 的 feat/module-controls，提交 c1f3120；再推送框架同名分支，提交 3cb52c91。两者均经 SSH 推送，正式主分支和标签保持原样
+- 框架 [Build Verification 38766420739](https://github.com/huaxianyan/PixelMiPushFramework/actions/runs/38766420739) 成功。固定模块源码检出、未签名 Release APK 和 hook AAR 构建、SDK 与切面检查、最终 APK 检查及报告上传均通过
+- 模块主题分支没有 CI 运行，现有工作流仅自动响应 master、标签和 PR。当前使用 SSH 推送，不把 SSH 密钥作为 Actions API 凭据，也未安装 CLI 或读取密钥内容
+- 下一步：在模块 Actions 页面手动运行 Build installable APK，选择 feat/module-controls，候选 version_name 可填 module-controls-check。确认其结果后，再单独安排预发布和 Release 附件装机验收
+- 模块本地构建结果沿用 STATUS-041，不以框架 CI 通过代替模块独立发布链路、真实通知或 SystemUI 运行验收。本轮未创建 Release、安装或操作设备
