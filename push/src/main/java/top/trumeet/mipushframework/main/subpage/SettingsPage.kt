@@ -73,6 +73,13 @@ private fun ServiceConfigurationBlock() {
             navigate(Pages.Advanced)
         }
 
+        NavigationRow(
+            title = stringResource(R.string.module_settings),
+            summary = stringResource(R.string.module_settings_summary)
+        ) {
+            navigate(Pages.Module)
+        }
+
         SetConfigurationsDirectory()
         SetXMPPServer(context)
     }

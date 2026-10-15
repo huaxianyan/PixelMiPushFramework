@@ -122,8 +122,12 @@ private fun Main(
     content: @Composable (Int, NavController) -> Unit
 ) {
     val navController = rememberNavController()
+    val moduleController = rememberModuleController()
     Theme {
-        CompositionLocalProvider(LocalPageNavigation provides { route -> navController.navigate(route) }) {
+        CompositionLocalProvider(
+            LocalPageNavigation provides { route -> navController.navigate(route) },
+            LocalModuleController provides moduleController
+        ) {
             NavHost(
                 navController = navController,
                 startDestination = MainTabsRoute,
@@ -144,6 +148,9 @@ private fun Main(
                         packageName = requireNotNull(entry.arguments?.getString(Pages.PackageName)),
                         onBack = { navController.popBackStack() }
                     )
+                }
+                composable(Pages.Module) {
+                    ModuleSettings(onBack = { navController.popBackStack() })
                 }
                 composable(Pages.Advanced) {
                     AdvancedSettings(onBack = { navController.popBackStack() })

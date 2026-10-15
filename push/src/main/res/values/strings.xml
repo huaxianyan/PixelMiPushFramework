@@ -288,4 +288,31 @@ This usually means the application registered and then unregistered again — tu
     <string name="action_clear_search">Clear search</string>
 
 
+    <string name="module_settings">Module settings</string>
+    <string name="module_settings_summary">Check the enhancement module and customize QQ notifications</string>
+    <string name="module_status">Enhancement module</string>
+    <string name="module_checking">Checking</string>
+    <string name="module_checking_summary">Retrieving module status</string>
+    <string name="module_not_ready">Not ready</string>
+    <string name="module_unavailable">Module status is unavailable. Install and enable the latest Pixel MiPush, then check again.</string>
+    <string name="module_update_required">This version of Pixel MiPush does not support these settings. Update the module, then check again.</string>
+    <string name="module_status_xmsf">Push service enhancement</string>
+    <string name="module_status_system">System notification enhancement</string>
+    <string name="module_status_style">QQ appearance enhancement</string>
+    <string name="module_loaded">Loaded</string>
+    <string name="module_ready">Ready</string>
+    <string name="module_xmsf_missing">Not detected. Add Push Service to the module scope, then reboot.</string>
+    <string name="module_system_missing">Not ready. Add System Framework to the module scope, then reboot.</string>
+    <string name="module_style_missing">Appearance enhancements are not fully loaded. Check Pixel compatibility, add System UI to the scope, then reboot.</string>
+    <string name="module_config_pending">Settings could not be synchronized. Check module status again.</string>
+    <string name="module_refresh">Check module status again</string>
+    <string name="module_qq_settings">QQ notifications</string>
+    <string name="module_qq_scope">These options are enabled by default and apply to subsequent notifications. Repost an existing notification to see the changes.</string>
+    <string name="module_qq_badge">Use QQ notification badge</string>
+    <string name="module_qq_badge_summary">Use the notification small icon as the badge beside the conversation avatar</string>
+    <string name="module_qq_geometry">Larger QQ conversation avatars</string>
+    <string name="module_qq_geometry_summary">Use 48 dp avatars with adjusted badge placement and spacing</string>
+    <string name="module_qq_summary">Simplify QQ summary notifications</string>
+    <string name="module_qq_summary_summary">Remove duplicate subtext from group summary notifications</string>
+    <string name="module_save_error">Could not save module settings. Check module status and try again.</string>
 </resources>

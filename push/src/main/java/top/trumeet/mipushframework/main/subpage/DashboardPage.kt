@@ -44,6 +44,7 @@ import top.trumeet.mipushframework.component.SettingsGroup
 import top.trumeet.mipushframework.component.SettingsRow
 import top.trumeet.mipushframework.component.StatusDot
 import top.trumeet.mipushframework.main.ConnectionStatusHolder
+import top.trumeet.mipushframework.main.ModuleStatusGroup
 import top.trumeet.mipushframework.main.RegistrationStateStyle
 import top.trumeet.mipushframework.utils.ParseUtils
 import top.trumeet.ui.theme.Layout
@@ -95,6 +96,7 @@ fun Dashboard() {
         ) {
             item { ConnectionCard(ConnectionStatusHolder.status) }
             item { CountersRow(info) }
+            item { ModuleStatusGroup(showSettingsLink = true) }
             item {
                 SettingsGroup(title = stringResource(R.string.dashboard_group_service)) {
                     ServiceRow(

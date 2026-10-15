@@ -40,6 +40,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - uses: ./.github/actions/module-api
+
       - name: Require versioned release notes and a new tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

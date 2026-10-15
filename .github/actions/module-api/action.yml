@@ -1,0 +1,22 @@
+name: Check out shared module API
+description: Use the exact PixelMiPush revision recorded by this framework revision
+runs:
+  using: composite
+  steps:
+    - name: Read pinned module revision
+      id: source
+      shell: bash
+      run: |
+        revision=$(tr -d '\r\n' < module-api.ref)
+        [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+        echo "revision=$revision" >> "$GITHUB_OUTPUT"
+    - name: Check out module sources
+      uses: actions/checkout@v4
+      with:
+        repository: huaxianyan/PixelMiPush
+        ref: ${{ steps.source.outputs.revision }}
+        path: .module-source
+        persist-credentials: false
+    - name: Locate the shared API for Gradle
+      shell: bash
+      run: echo "ORG_GRADLE_PROJECT_pixelMiPushDir=$GITHUB_WORKSPACE/.module-source" >> "$GITHUB_ENV"

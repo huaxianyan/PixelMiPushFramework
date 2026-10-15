@@ -13,6 +13,7 @@ object Pages {
     const val PackageName = "packageName"
     const val IgnoreNotRegistered = "ignoreNotRegistered"
     const val Advanced = "advanced_settings"
+    const val Module = "module_settings"
     const val Help = "help"
     private const val EventsPrefix = "package_events"
     private const val ApplicationPrefix = "application_info"

@@ -1,2 +1,10 @@
 include  ':condom', ':push', ':common'
 include ':mipush_hook'
+
+// The wire contract is owned by PixelMiPush; never maintain a second copy here.
+def pixelMiPushDir = providers.gradleProperty('pixelMiPushDir').getOrElse('../PixelMiPush')
+include ':module-api'
+project(':module-api').projectDir = file("${pixelMiPushDir}/module-api")
+if (!project(':module-api').projectDir.isDirectory()) {
+    throw new GradleException('Clone PixelMiPush beside this repository, or set -PpixelMiPushDir=<path>.')
+}
