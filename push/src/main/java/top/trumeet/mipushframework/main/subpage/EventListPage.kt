@@ -2,12 +2,27 @@ package top.trumeet.mipushframework.main.subpage
 
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.paging.LoadState
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import top.trumeet.ui.theme.Layout
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ListItem
@@ -17,11 +32,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,7 +42,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
@@ -41,15 +53,12 @@ import com.xiaomi.xmsf.R
 import top.trumeet.mipushframework.main.LocalPageNavigation
 import top.trumeet.mipushframework.main.Pages
 import com.xiaomi.xmsf.push.utils.RegSecUtils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import top.trumeet.common.Constants
 import top.trumeet.common.utils.Utils
 import top.trumeet.mipush.provider.entities.Event
 import top.trumeet.mipush.provider.event.type.TypeFactory
 import top.trumeet.mipushframework.component.AppIcon
-import top.trumeet.mipushframework.component.RefreshableLazyColumn
+import top.trumeet.mipushframework.component.EmptyHint
 import top.trumeet.mipushframework.component.TextView
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -70,20 +79,10 @@ fun EventList(query: String = "", packageName: String = "") {
             EventDetailsDialog(clickedEvent!!) { clickedEvent = null }
         }
 
-        var lastId by rememberSaveable { mutableStateOf<Long?>(null) }
-        EventList(onClick = { clickedEvent = it }, { isRefresh ->
-            if (isRefresh) lastId = null
-            val events = EventListPageUtils.getEventsById(
-                lastId, Constants.PAGE_SIZE, packageName, query
-            )
-            events.lastOrNull()?.let { lastId = it.id }
-            events.map {
-                toEventInfoForDisplay(
-                    it, context,
-                    EventListPageUtils(
-                        context
-                    )
-                )
+        EventList(onClick = { clickedEvent = it }, { beforeId, size ->
+            val utils = EventListPageUtils(context)
+            EventListPageUtils.getEventsById(beforeId, size, packageName, query).map {
+                toEventInfoForDisplay(it, context, utils)
             }
         }, query, packageName)
     }
@@ -190,49 +189,75 @@ private fun EventDetailsDialog(
     )
 }
 
-private val g_items = mutableStateListOf<EventInfoForDisplay>()
-
 @Composable
 fun EventList(
     onClick: (EventInfoForDisplay) -> Unit,
-    getEvents: (isRefresh: Boolean) -> List<EventInfoForDisplay>,
+    getEvents: (beforeId: Long?, size: Int) -> List<EventInfoForDisplay>,
     query: String,
     packageName: String
 ) {
-    val isPreview = LocalInspectionMode.current
-    val items = remember {
-        if (isPreview) getEvents(true).toMutableList()
-        else if (packageName.isEmpty()) g_items
-        else mutableStateListOf()
-    }
-
-
-    val refreshScope = rememberCoroutineScope { Dispatchers.IO }
-    val doLoadMore: (onRefreshed: () -> Unit) -> Unit = { onRefreshed ->
-        refreshScope.launch {
-            items.addAll(getEvents(items.isEmpty()))
-            onRefreshed()
+    key(query, packageName) {
+        val pager = remember {
+            Pager(
+                PagingConfig(
+                    pageSize = Constants.PAGE_SIZE,
+                    initialLoadSize = Constants.PAGE_SIZE,
+                    prefetchDistance = 3,
+                    enablePlaceholders = false
+                )
+            ) { EventHistoryPagingSource(getEvents) }
         }
-    }
-    var isNeedRefresh by rememberSaveable(query) { mutableStateOf(true) }
-    val doRefresh: (onRefreshed: () -> Unit) -> Unit = { onRefreshed ->
-        refreshScope.launch {
-            val elements = getEvents(true)
-            withContext(Dispatchers.Main) {
-                items.clear()
-                items.addAll(elements)
-                isNeedRefresh = false
-                onRefreshed()
+        val events = pager.flow.collectAsLazyPagingItems()
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            SwipeRefresh(
+                state = rememberSwipeRefreshState(events.loadState.refresh is LoadState.Loading),
+                onRefresh = { events.refresh() },
+                modifier = Modifier.widthIn(max = Layout.ContentMaxWidth).fillMaxSize()
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        horizontal = Layout.PageHorizontal,
+                        vertical = Layout.PageVertical
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(Layout.ListGap)
+                ) {
+                    if (events.loadState.refresh is LoadState.Error) {
+                        item { HistoryLoadError { events.retry() } }
+                    } else if (events.itemCount == 0 && events.loadState.refresh is LoadState.NotLoading) {
+                        item { EmptyHint(stringResource(R.string.event_list_empty)) }
+                    }
+                    items(events.itemCount, key = events.itemKey { it.id }) { index ->
+                        events[index]?.let { EventItem(it, onClick) }
+                    }
+                    when (events.loadState.append) {
+                        is LoadState.Loading -> item {
+                            Box(
+                                Modifier.fillMaxWidth().padding(Layout.CardPadding),
+                                contentAlignment = Alignment.Center
+                            ) { CircularProgressIndicator() }
+                        }
+                        is LoadState.Error -> item { HistoryLoadError { events.retry() } }
+                        is LoadState.NotLoading -> Unit
+                    }
+                }
             }
         }
     }
+}
 
-    val isNeedMore: (Int) -> Boolean = { it >= items.size - 10 }
-
-    RefreshableLazyColumn(doRefresh, isNeedMore, doLoadMore, isNeedRefresh) {
-        items(items, { it.id }) {
-            EventItem(it, onClick)
-        }
+@Composable
+private fun HistoryLoadError(onRetry: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(Layout.CardPadding),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            stringResource(R.string.event_history_load_error),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
     }
 }
 
@@ -326,9 +351,8 @@ fun EventListPreview() {
     XLog.init()
     Utils.context = LocalContext.current
 
-    val eventListSequence = sequence {
-        yield(
-            listOf(
+    val getEvents = { _: Long?, _: Int ->
+        listOf(
                 EventInfoForDisplay(
                     1212, "123",
                     setOf("123", "456"), "c1", date(2025, 1, 1),
@@ -339,36 +363,7 @@ fun EventListPreview() {
                     setOf("disable", "456"), "c1", date(2025, 1, 1),
                     "title", "content"
                 )
-            )
         )
-        yield((0..10).map {
-            val str = it.toString().repeat(3)
-            EventInfoForDisplay(
-                it.toLong(), str,
-                setOf(str), str, date(2025, 1, 1),
-                str, str
-            )
-        })
-        yield((11..20).map {
-            val str = it.toString().repeat(3)
-            EventInfoForDisplay(
-                it.toLong(), str,
-                setOf(str), str, date(2025, 1, 1),
-                str, str
-            )
-        })
-        yield((21..30).map {
-            val str = it.toString().repeat(3)
-            EventInfoForDisplay(
-                it.toLong(), str,
-                setOf(str), str, date(2025, 1, 1),
-                str, str
-            )
-        })
-    }.iterator()
-
-    val getEvents = { isRefresh: Boolean ->
-        if (eventListSequence.hasNext()) eventListSequence.next() else emptyList()
     }
 
     Page {
@@ -393,4 +388,7 @@ data class EventInfoForDisplay(
     val content: String,
     val appName: String? = null,
     val event: Event = Event(),
-)
+) {
+    // Paging diagnostics stringify the first and last row; message content stays out of that path.
+    override fun toString(): String = "EventInfoForDisplay(id=$id, packageName=$packageName)"
+}

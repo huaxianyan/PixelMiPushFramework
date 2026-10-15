@@ -293,4 +293,5 @@
     <string name="module_qq_summary">简化 QQ 汇总通知</string>
     <string name="module_qq_summary_summary">移除汇总通知中的重复副标题</string>
     <string name="module_save_error">模块设置保存失败，请重新检查模块状态后再试。</string>
+    <string name="event_history_load_error">暂时无法加载记录，请重试。</string>
 </resources>

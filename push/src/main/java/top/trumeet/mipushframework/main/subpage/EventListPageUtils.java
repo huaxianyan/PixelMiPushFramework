@@ -60,11 +60,6 @@ public class EventListPageUtils {
         return EventDb.queryById(lastId, size, getDisplayTypes(), packetName, query);
     }
 
-    static List<Event> getEvents(int pageIndex, int pageSize, String packetName, String query) {
-        return EventDb.queryByPage(pageIndex, pageSize,
-                getDisplayTypes(), packetName, query);
-    }
-
     public static void copyToClipboard(Context context, CharSequence info) {
         ClipboardManager clipboardManager = (ClipboardManager)
                 context.getSystemService(Context.CLIPBOARD_SERVICE);

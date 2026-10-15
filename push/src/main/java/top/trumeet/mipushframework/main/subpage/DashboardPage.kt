@@ -89,8 +89,6 @@ fun Dashboard() {
     Page {
         RefreshableLazyColumn(
             onRefresh,
-            { false },
-            onRefresh,
             isNeedRefresh,
             verticalArrangement = Arrangement.spacedBy(Layout.CardGap)
         ) {

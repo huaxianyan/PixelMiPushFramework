@@ -315,4 +315,5 @@ This usually means the application registered and then unregistered again — tu
     <string name="module_qq_summary">Simplify QQ summary notifications</string>
     <string name="module_qq_summary_summary">Remove duplicate subtext from group summary notifications</string>
     <string name="module_save_error">Could not save module settings. Check module status and try again.</string>
+    <string name="event_history_load_error">Could not load records. Please try again.</string>
 </resources>

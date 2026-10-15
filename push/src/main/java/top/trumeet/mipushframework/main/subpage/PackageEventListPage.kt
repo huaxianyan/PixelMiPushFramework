@@ -79,7 +79,7 @@ fun PackageEventList(onClick: (String) -> Unit) {
     Page {
         Column {
             SearchBar(stringResource(R.string.action_search)) { query = it }
-            RefreshableLazyColumn(onRefresh, { false }, onRefresh, isNeedRefresh) {
+            RefreshableLazyColumn(onRefresh, isNeedRefresh) {
                 if (shown.isNullOrEmpty()) {
                     item { EmptyHint(stringResource(R.string.event_list_empty)) }
                 } else {

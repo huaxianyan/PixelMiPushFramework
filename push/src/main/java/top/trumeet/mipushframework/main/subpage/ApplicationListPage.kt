@@ -98,7 +98,7 @@ fun ApplicationList(
     }
 
     Page {
-        RefreshableLazyColumn(onRefresh, { false }, onRefresh, isNeedRefresh) {
+        RefreshableLazyColumn(onRefresh, isNeedRefresh) {
             items(g_items.res, { it.packageName }) {
                 ApplicationItem(it)
             }
