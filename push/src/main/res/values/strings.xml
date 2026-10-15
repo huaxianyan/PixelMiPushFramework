@@ -307,11 +307,11 @@ This usually means the application registered and then unregistered again — tu
     <string name="module_config_pending">Settings could not be synchronized. Check module status again.</string>
     <string name="module_refresh">Check module status again</string>
     <string name="module_qq_settings">QQ notifications</string>
-    <string name="module_qq_scope">These options are enabled by default and apply to subsequent notifications. Repost an existing notification to see the changes.</string>
+    <string name="module_qq_scope">Enabled by default. Changes apply to subsequent notifications. Repost existing notifications to see the update.</string>
     <string name="module_qq_badge">Use QQ notification badge</string>
-    <string name="module_qq_badge_summary">Use the notification small icon as the badge beside the conversation avatar</string>
+    <string name="module_qq_badge_summary">Show the notification icon at the lower-right of the avatar</string>
     <string name="module_qq_geometry">Larger QQ conversation avatars</string>
-    <string name="module_qq_geometry_summary">Use 48 dp avatars with adjusted badge placement and spacing</string>
+    <string name="module_qq_geometry_summary">Larger avatars with adjusted badge placement and spacing</string>
     <string name="module_qq_summary">Simplify QQ summary notifications</string>
     <string name="module_qq_summary_summary">Remove duplicate subtext from group summary notifications</string>
     <string name="module_save_error">Could not save module settings. Check module status and try again.</string>

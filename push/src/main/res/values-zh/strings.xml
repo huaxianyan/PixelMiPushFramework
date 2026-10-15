@@ -285,11 +285,11 @@
     <string name="module_config_pending">设置暂时无法同步，请重新检查模块状态。</string>
     <string name="module_refresh">重新检查模块状态</string>
     <string name="module_qq_settings">QQ 通知定制</string>
-    <string name="module_qq_scope">以下选项默认开启，修改后用于后续通知。已有通知可在重新发布后查看效果。</string>
+    <string name="module_qq_scope">默认开启。更改对后续通知生效，已有通知需重新发布。</string>
     <string name="module_qq_badge">使用 QQ 通知角标</string>
-    <string name="module_qq_badge_summary">使用通知提供的小图标作为会话头像右下角的角标</string>
+    <string name="module_qq_badge_summary">在头像右下角显示通知图标</string>
     <string name="module_qq_geometry">放大 QQ 会话头像</string>
-    <string name="module_qq_geometry_summary">使用 48 dp 头像，并调整角标位置与留白</string>
+    <string name="module_qq_geometry_summary">使用更大的头像，调整角标位置与间距</string>
     <string name="module_qq_summary">简化 QQ 汇总通知</string>
     <string name="module_qq_summary_summary">移除汇总通知中的重复副标题</string>
     <string name="module_save_error">模块设置保存失败，请重新检查模块状态后再试。</string>
