@@ -2,7 +2,7 @@
 
 ## 当前主线
 
-用户已授权合并全部功能和文档并正式发布。两个仓库正在准备框架 `v1.2.0` 与模块 `v1.1.0`，上一正式基线保持不变，发布准备见 STATUS-050。历史 Release 仅修订对外动效表述，来源说明集中在 README 末尾，源码标签与附件保持原样。
+正式基线为 [v1.2.0](https://github.com/huaxianyan/PixelMiPushFramework/releases/tag/v1.2.0)，配套模块 [v1.1.0](https://github.com/huaxianyan/PixelMiPush/releases/tag/v1.1.0) 已同步发布，两者均为 Latest，结果见 STATUS-051。全部功能与文档已合入 master，历史 Release 正文已统一为现代动效表述，来源说明集中在 README 末尾。正式附件已完成静态核对，尚未重新装机。
 
 ## 接手入口
 
@@ -13,7 +13,7 @@
 - [BUILDING](../BUILDING.md)：工具链、构建及产物核对。
 - [RELEASING](RELEASING.md)：版本说明、签名发布与附件规则。
 - [Android 17 迁移](ANDROID17-MIGRATION.md)：当前导航动效及历史迁移细节。
-- [v1.1.0 发布说明](release-notes/v1.1.0.md)：正式版范围与安装。
+- [v1.2.0 发布说明](release-notes/v1.2.0.md)：正式版范围与升级。
 - [STATUS-001～037 归档](archive/STATUS-2026-10-13_2026-10-15.md)：2026-10-13 至 2026-10-15。按编号查历史，默认只读当前页。
 
 ## STATUS-038：v1.1.0 正式发布与历史修正完成
@@ -148,3 +148,13 @@
 - README 末尾集中补充动效来源，历史说明文件同步使用现代动效表述。源码标签与历史附件保持原样；一次性维护步骤在发布核对后从主线移除
 - 用户初步认可当前体验并批准发布。首屏等待尚无分段耗时证据，汇总副标题在当前样本中未复现重复文案，原因继续保留待研究
 - 先推送主分支并等待普通 CI，通过后创建注解标签并发布。线上结果另行追加，本轮不安装、清数据或重启设备
+
+## STATUS-051：v1.2.0 与模块 v1.1.0 正式发布完成
+
+- 框架注解标签 v1.2.0 固定源码 02b2b155ebbea1003e327a1f71171c84675a4118，配套模块 v1.1.0 固定源码 98d3daa0096773d10c0a0bc35f7a6ed5dd2d065f。两个 Release 均已确认为正式 Latest，既有主题分支全部合入，未删除历史标签或改写附件
+- 框架 [主线 CI 38896151831](https://github.com/huaxianyan/PixelMiPushFramework/actions/runs/38896151831) 和 [发布 CI 38897801685](https://github.com/huaxianyan/PixelMiPushFramework/actions/runs/38897801685) 成功。模块的独立 CI 与附件结果见其发布页面和交接记录
+- 从正式 Release 下载 normal、vc105 及模块 APK，复用各自发布校验脚本检查包信息、非调试标记、长期证书与 v2 签名。实际 APK 摘要、同名校验文件、GitHub 资产摘要及线上构建信息一致，框架两个变体均覆盖四种声明 ABI
+- 框架实际包名 com.xiaomi.xmsf，normal／vc105 版本码为 1003003008／105。normal SHA-256 为 d6902a373d2ddbe19f9bc8ab8e4ac295e3be7c1bb653aacd38221082707a25b5，vc105 为 3e10d7a519aafcff96fca090a1ae19036ce97b39079b6b61f3e8fdaccf7f93f5
+- 对两仓库全部历史 Release 作前后对照，只有框架 v1.1.0 正文替换两处动效名称。历史附件标识、名称、字节数和摘要完全一致，其他旧正文未改，所有当前 Release 正文均已移除参考应用名称
+- README 末尾保留一次来源说明。已完成的一次性历史文案维护步骤从主线移除，避免后续发布继续携带此操作；本地保留原正文、前后元数据及已校验正式附件，未保留重复下载副本
+- 本轮没有安装、卸载、清数据、重启或读取设备图片。真实运行结论沿用已有本地测试与用户反馈，不把静态校验和公开发布扩大为正式附件已通过新一轮设备验收
