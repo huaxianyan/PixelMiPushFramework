@@ -267,7 +267,7 @@
 
 
     <string name="module_settings">模块设置</string>
-    <string name="module_settings_summary">查看增强模块状态，调整 QQ 通知样式</string>
+    <string name="module_settings_summary">查看模块状态和个性化设置</string>
     <string name="module_status">增强模块</string>
     <string name="module_checking">正在检查</string>
     <string name="module_checking_summary">正在获取模块工作状态</string>
@@ -276,7 +276,7 @@
     <string name="module_update_required">当前版本的 Pixel MiPush 暂不支持这些设置。请更新模块后重新检查。</string>
     <string name="module_status_xmsf">推送服务增强</string>
     <string name="module_status_system">系统通知增强</string>
-    <string name="module_status_style">QQ 样式增强</string>
+    <string name="module_personalizations">个性化设置</string>
     <string name="module_loaded">已加载</string>
     <string name="module_ready">已就绪</string>
     <string name="module_xmsf_missing">尚未检测到。请在模块作用域中勾选推送服务，然后重启设备。</string>
@@ -294,4 +294,17 @@
     <string name="module_qq_summary_summary">移除汇总通知中的重复副标题</string>
     <string name="module_save_error">模块设置保存失败，请重新检查模块状态后再试。</string>
     <string name="event_history_load_error">暂时无法加载记录，请重试。</string>
+    <string name="module_personalization_mixed">%1$s · %2$s</string>
+    <plurals name="module_personalization_ready">
+        <item quantity="one">%d 项正常</item>
+        <item quantity="other">%d 项正常</item>
+    </plurals>
+    <plurals name="module_personalization_not_ready">
+        <item quantity="one">%d 项未就绪</item>
+        <item quantity="other">%d 项未就绪</item>
+    </plurals>
+    <plurals name="module_personalization_unknown">
+        <item quantity="one">%d 项待检测</item>
+        <item quantity="other">%d 项待检测</item>
+    </plurals>
 </resources>

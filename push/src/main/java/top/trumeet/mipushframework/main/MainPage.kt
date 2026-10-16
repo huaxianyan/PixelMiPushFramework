@@ -152,6 +152,9 @@ private fun Main(
                 composable(Pages.Module) {
                     ModuleSettings(onBack = { navController.popBackStack() })
                 }
+                composable(Pages.QqNotifications) {
+                    QqNotificationSettings(onBack = { navController.popBackStack() })
+                }
                 composable(Pages.Advanced) {
                     AdvancedSettings(onBack = { navController.popBackStack() })
                 }

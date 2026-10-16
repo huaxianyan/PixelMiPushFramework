@@ -1,7 +1,9 @@
 package top.trumeet.mipushframework.main
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,44 +31,61 @@ import top.trumeet.mipushframework.component.SettingsItem
 import top.trumeet.mipushframework.component.SettingsRow
 import top.trumeet.ui.theme.Layout
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModuleSettings(onBack: () -> Unit) {
     val controller = LocalModuleController.current
     val scope = rememberCoroutineScope()
+    val navigate = LocalPageNavigation.current
+    ModuleSettingsLayout(R.string.module_settings, onBack) {
+        ModuleStatusGroup()
+        SettingsItem(title = stringResource(R.string.module_refresh)) {
+            scope.launch { controller.read(refresh = true) }
+        }
+        SettingsGroup(title = stringResource(R.string.module_personalizations)) {
+            personalizations.forEach { entry ->
+                val state = controller.snapshot
+                NavigationRow(
+                    title = stringResource(entry.title),
+                    summary = stringResource(
+                        state?.let { entry.status(it).summary }
+                            ?: controller.error ?: R.string.module_checking_summary
+                    )
+                ) { navigate(entry.route) }
+            }
+        }
+    }
+}
+
+@Composable
+fun QqNotificationSettings(onBack: () -> Unit) {
+    val controller = LocalModuleController.current
+    val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val saveError = stringResource(R.string.module_save_error)
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.module_settings)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                    }
-                }
+    ModuleSettingsLayout(R.string.module_qq_settings, onBack, snackbar) {
+        val state = controller.snapshot
+        if (state == null) {
+            SettingsRow(
+                title = stringResource(if (controller.error == null) R.string.module_checking else R.string.module_not_ready),
+                summary = stringResource(controller.error ?: R.string.module_checking_summary)
             )
-        },
-        snackbarHost = { SnackbarHost(snackbar) }
-    ) { padding ->
-        PageColumn(contentPadding = padding) {
-            ModuleStatusGroup()
             SettingsItem(title = stringResource(R.string.module_refresh)) {
                 scope.launch { controller.read(refresh = true) }
             }
+        } else {
             Column(verticalArrangement = Arrangement.spacedBy(Layout.LineGap)) {
-                SettingsGroup(title = stringResource(R.string.module_qq_settings)) {
+                SettingsGroup {
                     listOf(
                         Triple(Api.QQ_BADGE, R.string.module_qq_badge, R.string.module_qq_badge_summary),
                         Triple(Api.QQ_GEOMETRY, R.string.module_qq_geometry, R.string.module_qq_geometry_summary),
                         Triple(Api.QQ_SUMMARY, R.string.module_qq_summary, R.string.module_qq_summary_summary)
                     ).forEach { (key, title, summary) ->
-                        val checked = controller.snapshot?.getBoolean(key, true) ?: true
+                        val checked = state.getBoolean(key)
                         SettingsItem(
                             title = stringResource(title),
                             summary = stringResource(summary),
                             checked = checked,
-                            enabled = controller.snapshot != null && !controller.saving
+                            enabled = !controller.saving
                         ) {
                             scope.launch {
                                 if (!controller.set(key, !checked)) snackbar.showSnackbar(saveError)
@@ -109,17 +128,38 @@ fun ModuleStatusGroup(showSettingsLink: Boolean = false) {
                 title = stringResource(R.string.module_status_system),
                 summary = stringResource(if (state.getBoolean(Api.SYSTEM_READY)) R.string.module_ready else R.string.module_system_missing)
             )
-            SettingsRow(
-                title = stringResource(R.string.module_status_style),
-                summary = stringResource(when {
-                    !state.getBoolean(Api.BADGE_READY) || !state.getBoolean(Api.GEOMETRY_READY) -> R.string.module_style_missing
-                    !state.getBoolean(Api.SYSTEM_UI_CONFIG_READY) -> R.string.module_config_pending
-                    else -> R.string.module_ready
-                })
-            )
         }
+        SettingsRow(
+            title = stringResource(R.string.module_personalizations),
+            summary = personalizationSummary(state)
+        )
         if (showSettingsLink) {
             NavigationRow(title = stringResource(R.string.module_settings)) { navigate(Pages.Module) }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModuleSettingsLayout(
+    @StringRes title: Int,
+    onBack: () -> Unit,
+    snackbar: SnackbarHostState? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+                    }
+                }
+            )
+        },
+        snackbarHost = { snackbar?.let { SnackbarHost(it) } }
+    ) { padding ->
+        PageColumn(contentPadding = padding, content = content)
     }
 }

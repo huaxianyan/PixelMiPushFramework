@@ -14,6 +14,7 @@ object Pages {
     const val IgnoreNotRegistered = "ignoreNotRegistered"
     const val Advanced = "advanced_settings"
     const val Module = "module_settings"
+    const val QqNotifications = "qq_notification_settings"
     const val Help = "help"
     private const val EventsPrefix = "package_events"
     private const val ApplicationPrefix = "application_info"

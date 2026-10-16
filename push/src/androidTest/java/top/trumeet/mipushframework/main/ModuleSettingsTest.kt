@@ -2,7 +2,9 @@ package top.trumeet.mipushframework.main
 
 import android.net.Uri
 import android.os.Bundle
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -39,6 +41,7 @@ class ModuleSettingsTest {
         try {
             compose.onNodeWithText(context.getString(R.string.main_settings)).performClick()
             compose.onNodeWithText(context.getString(R.string.module_settings)).performScrollTo().performClick()
+            compose.onNodeWithText(context.getString(R.string.module_qq_settings)).performScrollTo().performClick()
             listOf(
                 Api.QQ_BADGE to R.string.module_qq_badge,
                 Api.QQ_GEOMETRY to R.string.module_qq_geometry,
@@ -54,6 +57,10 @@ class ModuleSettingsTest {
                 val saved = read()
                 expected.forEach { (option, value) -> assertEquals(option, value, saved.getBoolean(option)) }
             }
+            compose.onNodeWithContentDescription(context.getString(R.string.action_back)).performClick()
+            compose.onNodeWithText(
+                context.resources.getQuantityString(R.plurals.module_personalization_ready, 1, 1)
+            ).assertIsDisplayed()
         } finally {
             // Restore actual device configuration, including when an assertion fails.
             Api.OPTIONS.forEach { key ->

@@ -289,7 +289,7 @@ This usually means the application registered and then unregistered again — tu
 
 
     <string name="module_settings">Module settings</string>
-    <string name="module_settings_summary">Check the enhancement module and customize QQ notifications</string>
+    <string name="module_settings_summary">Check module status and personalization</string>
     <string name="module_status">Enhancement module</string>
     <string name="module_checking">Checking</string>
     <string name="module_checking_summary">Retrieving module status</string>
@@ -298,7 +298,7 @@ This usually means the application registered and then unregistered again — tu
     <string name="module_update_required">This version of Pixel MiPush does not support these settings. Update the module, then check again.</string>
     <string name="module_status_xmsf">Push service enhancement</string>
     <string name="module_status_system">System notification enhancement</string>
-    <string name="module_status_style">QQ appearance enhancement</string>
+    <string name="module_personalizations">Personalization</string>
     <string name="module_loaded">Loaded</string>
     <string name="module_ready">Ready</string>
     <string name="module_xmsf_missing">Not detected. Add Push Service to the module scope, then reboot.</string>
@@ -316,4 +316,17 @@ This usually means the application registered and then unregistered again — tu
     <string name="module_qq_summary_summary">Remove duplicate subtext from group summary notifications</string>
     <string name="module_save_error">Could not save module settings. Check module status and try again.</string>
     <string name="event_history_load_error">Could not load records. Please try again.</string>
+    <string name="module_personalization_mixed">%1$s · %2$s</string>
+    <plurals name="module_personalization_ready">
+        <item quantity="one">%d item ready</item>
+        <item quantity="other">%d items ready</item>
+    </plurals>
+    <plurals name="module_personalization_not_ready">
+        <item quantity="one">%d item not ready</item>
+        <item quantity="other">%d items not ready</item>
+    </plurals>
+    <plurals name="module_personalization_unknown">
+        <item quantity="one">%d item awaiting status</item>
+        <item quantity="other">%d items awaiting status</item>
+    </plurals>
 </resources>
