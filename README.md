@@ -20,10 +20,10 @@
 - Android 17 适配：支持 edge-to-edge、通知权限引导和预测性返回，处理服务启动与通知点击限制。
 - Material You 界面：Android 12 及以上支持动态取色，层级页面采用现代动效，同级栏目保持固定外壳与内容淡入淡出。
 - 服务仪表盘：集中显示连接状态、注册应用数、近期推送统计和服务运行时长。
-- 按应用查看记录：先看各应用的记录概况，再查看具体事件、消息详情和配置处理结果。
+- 按应用查看记录：先看各应用的记录概况，历史记录按批读取，接近末尾时继续加载更早内容。
 - 可配置通知：通过规则调整标题、内容、渠道和通知样式，按需控制忽略、亮屏或弹出行为。
 - 连接恢复与隐私：修复网络切换后连接状态卡住的问题，对日志中的推送凭据脱敏，首页聚焦服务状态与统计。
-- 配套模块协作：与 [Pixel MiPush](https://github.com/huaxianyan/PixelMiPush) 分工处理设备识别适配、系统通知归属和会话样式增强。
+- 配套模块协作：与 [Pixel MiPush](https://github.com/huaxianyan/PixelMiPush) 分工处理设备识别和系统通知增强。框架内可查看模块状态，按项目汇总个性化设置，独立控制 QQ 通知定制。
 
 安装包包含的功能以对应 [Release 说明](https://github.com/huaxianyan/PixelMiPushFramework/releases) 为准。源码候选与未发布改动见 [开发记录](docs/STATUS.md)。
 
@@ -52,7 +52,9 @@
 
 在设置页的「设置配置目录」中选择规则目录。可参考 [上游规则仓库](https://github.com/NihilityT/MiPushConfigurations) 按需选择配置，先查看每份规则的说明，避免同时启用互斥文件。
 
-框架负责消息接收、记录和通知处理，Pixel MiPush 负责需要注入系统或目标应用的增强。两者分别安装和更新，具体版本的模块能力以模块文档及发布说明为准。
+框架负责消息接收、记录和通知处理，Pixel MiPush 负责需要注入系统或目标应用的增强。两者分别安装和更新，模块设置需搭配支持控制接口的模块版本。
+
+在「设置 → 模块设置」查看运行状态。个性化设置按项目显示正常或未就绪数量，进入「QQ 通知定制」后再调整三个独立开关，详见 [模块设置说明](docs/MODULE-CONTROL.md)。
 
 遇到问题时，先核对权限、应用注册和配套模块作用域，再通过「设置 → 获取日志」导出记录。提交 [Issue](https://github.com/huaxianyan/PixelMiPushFramework/issues) 前请检查日志中的设备标识、消息内容和服务器信息，参见 [反馈指南](docs/USAGE.md#日志与反馈)。
 
@@ -67,6 +69,7 @@
 ## 文档
 
 - [使用与兼容说明](docs/USAGE.md)：版本选择、迁移、权限、通知规则与常见问题。
+- [模块状态与个性化设置](docs/MODULE-CONTROL.md)：状态含义、QQ 设置层级和联合构建。
 - [构建指南](BUILDING.md)：工具链、定向构建和产物校验。
 - [发布约定](docs/RELEASING.md)：版本说明、签名和 Release 附件规则。
 - [Android 17 适配](docs/ANDROID17-MIGRATION.md)：平台适配、页面动效和运行验证边界。
@@ -77,5 +80,7 @@
 ## 许可证
 
 本项目源码沿用 [GNU General Public License v3.0](LICENSE)，保留上游版权及署名。第三方组件与资源的权属、许可不因本项目的维护而改变，具体来源见 [致谢](docs/ACKNOWLEDGEMENTS.md)。
+
+页面层级动效参考了 [Pixel Text](https://github.com/Pixel-Tailor-CN/PixelText) 的开源导航实现，感谢原作者提供的实现与思路。
 
 [obtainium]: https://apps.obtainium.imranr.dev/redirect?r=obtainium%3A%2F%2Fapp%2F%257B%2522id%2522%253A%2522com.xiaomi.xmsf%2522%252C%2522url%2522%253A%2522https%253A%2F%2Fgithub.com%2Fhuaxianyan%2FPixelMiPushFramework%2522%252C%2522author%2522%253A%2522huaxianyan%2522%252C%2522name%2522%253A%2522Pixel%2520MiPushFramework%2522%252C%2522additionalSettings%2522%253A%2522%257B%255C%2522apkFilterRegEx%255C%2522%253A%255C%2522%255EPixelMiPushFramework-normal-universal-.%252A%255C%255C%255C%255C.apk%2524%255C%2522%252C%255C%2522includePrereleases%255C%2522%253Afalse%252C%255C%2522versionDetection%255C%2522%253Atrue%252C%255C%2522appName%255C%2522%253A%255C%2522Pixel%2520MiPushFramework%255C%2522%257D%2522%257D

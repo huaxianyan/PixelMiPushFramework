@@ -48,7 +48,7 @@ android {
         // @see com.xiaomi.mipush.sdk.PushServiceClient#register
         // @see com.xiaomi.mipush.sdk.PushServiceClient#createServiceIntent
         // @see com.xiaomi.mipush.sdk.PushServiceClient#getPushServiceName
-        versionCode 1003003007
+        versionCode 1003003008
         versionName rootProject.ext.versionName
         archivesBaseName = "xmsf-v${versionName}"
 

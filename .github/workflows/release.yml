@@ -53,6 +53,51 @@ jobs:
             exit 1
           fi
 
+      # One-time wording migration authorized for this release; remove after verification.
+      - name: Update historical release wording
+        if: steps.release_tag.outputs.name == 'v1.2.0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          repo = os.environ['GITHUB_REPOSITORY']
+          endpoint = f'repos/{repo}/releases/tags/v1.1.0'
+          def get(path):
+              return json.loads(subprocess.check_output(['gh', 'api', path], text=True, encoding='utf-8'))
+          def assets(release):
+              return sorted((a['id'], a['name'], a['size'], a.get('digest')) for a in release['assets'])
+          before = get(endpoint)
+          report = Path('build/release/history-wording-verification.json')
+          report.parent.mkdir(parents=True, exist_ok=True)
+          report.write_text(json.dumps({'before': before}, ensure_ascii=False, indent=2), encoding='utf-8')
+          body = before['body'].replace('界面现代化与 Pixel Text 动效对齐完成', '界面与现代动效适配完成')
+          body = body.replace('**Pixel Text 动效**', '**现代动效**')
+          assert not re.search(r'pixel\s*text', body, re.I)
+          assert len(body.splitlines()) <= 40
+          if body != before['body']:
+              subprocess.run(['gh', 'api', '--method', 'PATCH', f"repos/{repo}/releases/{before['id']}", '--input', '-'],
+                             input=json.dumps({'body': body}), text=True, check=True, stdout=subprocess.DEVNULL)
+          after = get(endpoint)
+          assert after['body'] == body
+          assert assets(before) == assets(after)
+          for field in ['id', 'name', 'tag_name', 'draft', 'prerelease', 'target_commitish']:
+              assert before[field] == after[field]
+          report.write_text(json.dumps({'before': before, 'after': after, 'assetsUnchanged': True},
+                                       ensure_ascii=False, indent=2), encoding='utf-8')
+          print('Historical wording updated; asset IDs, names, sizes and digests preserved.')
+          PY
+
+      - name: Preserve historical wording verification
+        if: always() && steps.release_tag.outputs.name == 'v1.2.0'
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: release-wording-verification
+          path: build/release/history-wording-verification.json
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
