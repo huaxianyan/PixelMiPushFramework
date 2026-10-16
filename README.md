@@ -1,133 +1,81 @@
+<div align="center">
+  <img src="push/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="120" alt="Pixel MiPushFramework 应用图标">
+
 # Pixel MiPushFramework
 
-[![Release](https://github.com/huaxianyan/PixelMiPushFramework/actions/workflows/release.yml/badge.svg)](https://github.com/huaxianyan/PixelMiPushFramework/actions/workflows/release.yml)
+[![Release](https://img.shields.io/github/v/release/huaxianyan/PixelMiPushFramework)](https://github.com/huaxianyan/PixelMiPushFramework/releases/latest)
+[![Build](https://github.com/huaxianyan/PixelMiPushFramework/actions/workflows/test_ci.yml/badge.svg?branch=master)](https://github.com/huaxianyan/PixelMiPushFramework/actions/workflows/test_ci.yml)
 [![License GPL-3.0](https://img.shields.io/badge/license-GPLv3.0-blue.svg)](LICENSE)
-![Min Android Version](https://img.shields.io/badge/android-6.0%2B-%23860597.svg)
 
-在非 MIUI 系统上体验小米系统级推送。
+</div>
 
-应用的显示名，英文是 **Pixel MiPushFramework**，中文仍是「推送服务」。包名固定为 `com.xiaomi.xmsf`，这一点不要被名字迷惑，原因见下面的常见问题。
+面向 Pixel 的小米共享推送服务，让接入小米推送的应用共用一条推送连接，并在同一处查看接入状态、推送记录和通知配置。中文显示名为「推送服务」。
 
-> **适配范围：本项目以 Pixel 设备为核心做适配与体验打磨。** 界面表现、保活行为、通知样式都只在 Pixel 上验证过，其他机型不保证效果。框架在多数非 MIUI 机型上仍能完成推送，但这属于「能用」，不代表体验经过验证；非 Pixel 设备特有的问题未必会处理。
+本项目在上游共享推送能力上独立维护，重点是新 Android 适配、Material You 界面、连接恢复和日志隐私。
 
-## 什么是小米系统级推送，为什么会有这个项目
+> 社区维护的非官方项目，以 Pixel 为主要验收设备。其他机型的通知外观、后台运行和接入效果需要自行验证。
 
-小米推送是小米公司提供的推送服务，许多应用都在使用（如酷安）。它非常轻量，会在 MIUI 设备上自动启用系统推送，非 MIUI 设备则要在后台保持长连接。
+## 特性
 
-### 系统级推送
+- Android 17 适配：支持 edge-to-edge、通知权限引导和预测性返回，处理服务启动与通知点击限制。
+- Material You 界面：Android 12 及以上支持动态取色，层级页面采用现代动效，同级栏目保持固定外壳与内容淡入淡出。
+- 服务仪表盘：集中显示连接状态、注册应用数、近期推送统计和服务运行时长。
+- 按应用查看记录：先看各应用的记录概况，再查看具体事件、消息详情和配置处理结果。
+- 可配置通知：通过规则调整标题、内容、渠道和通知样式，按需控制忽略、亮屏或弹出行为。
+- 连接恢复与隐私：修复网络切换后连接状态卡住的问题，对日志中的推送凭据脱敏，首页聚焦服务状态与统计。
+- 配套模块协作：与 [Pixel MiPush](https://github.com/huaxianyan/PixelMiPush) 分工处理设备识别适配、系统通知归属和会话样式增强。
 
-类似 GCM，小米推送的系统级推送在 MIUI 上由系统完成。
+安装包包含的功能以对应 [Release 说明](https://github.com/huaxianyan/PixelMiPushFramework/releases) 为准。源码候选与未发布改动见 [开发记录](docs/STATUS.md)。
 
-接入小米推送的应用在启动时，会依据当前系统是否为 MIUI ROM 决定推送方式：
+## 快速开始
 
-- 在 MIUI ROM 上，推送全部由系统完成，应用**无需后台**，更省电
-- 在非 MIUI ROM 上，每个应用都要**在后台启动**一个 `XMPushService`，各自建立一条接收推送的连接。相比由系统统一实现推送，多个应用的多条连接会明显更耗电、耗内存、耗流量
+### 下载安装
 
-### 本项目的意义
+框架安装包要求 Android 6.0 及以上，服务本身无需 Root 或 Xposed。系统级通知增强由配套模块提供，需要兼容的 LSPosed 环境。
 
-本项目起源于一个想法：让任何非 MIUI ROM 的用户都能用上类似 MIUI 的系统级推送——应用不必常驻后台，也能把消息推给用户。
+**已有其他来源的同包名服务时，先阅读 [签名与迁移](docs/USAGE.md#签名与迁移)。** 不同签名无法直接覆盖，卸载会清除原有数据。
 
-## 功能
+1. 从 [最新正式版](https://github.com/huaxianyan/PixelMiPushFramework/releases/latest) 下载 `normal` APK。只有接入方明确需要旧服务版本范围时，才选择 `vc105`。
+2. 打开「推送服务」，按向导完成通知、电池优化等授权。
+3. 按需在「设置 → 高级配置」中开启「推送服务保活」，再打开目标应用确认注册并测试一条真实消息。
+4. 需要设备识别或通知增强时，另行安装 [Pixel MiPush](https://github.com/huaxianyan/PixelMiPush)，按模块文档启用并选择作用域。
 
-- **基本推送能力**。与 MIUI ROM 中的推送服务（`com.xiaomi.xmsf`）基本一致，默认禁止拉起应用
-- **通知改写**。通过配置文件修改消息的标题、内容与样式，控制收到消息时忽略、亮屏或自动弹出等行为
-- **观测**。在应用界面里查看哪些应用接入了小米推送、它们各自推了什么
+### 通过 Obtainium 更新
 
-### 注意
-
-- 请给予 `com.xiaomi.xmsf` 足够的权限，不要用黑域、绿色守护、Xposed 模块去限制它，这会导致推送不稳定
-- 在 MIUI ROM 上，部分依赖推送的功能不可用（如网络短信），目前明确可用的是「查找手机」
-- 服务本身不需要 Root 或 Xposed，但为了让应用主动向 `com.xiaomi.xmsf` 注册，建议配合伪装增强模块使用
-
-## 优点
-
-- 安装简单，装完跟着向导走完即可
-- 用上之后，其他应用的 `XMPushService` 会自动禁用，行为与 MIUI 一致，同时保证推送
-- 完整的事件记录，可以追踪每个应用的注册与推送
-- 拦截小米推送产生的不必要唤醒，也能阻止它读取隐私
-- 可定制，自己决定消息的内容与行为
-
-## 开始使用
-
-- 到 [Releases](https://github.com/huaxianyan/PixelMiPushFramework/releases) 下载最新的 APK 并安装
-- 跟着向导完成权限设置
-- 可选：开启高级配置里的「推送服务保活」
-
-### 通过 Obtainium 安装与更新
-
-先安装 [Obtainium](https://obtainium.imranr.dev/)，再点击下方按钮导入本项目。入口跟踪正式版本，只选择 `normal` 的 APK，`vc105` 仍需手动选择。
+先安装 [Obtainium](https://obtainium.imranr.dev/)，再点击下方入口导入更新源。默认跟踪正式版的 `normal` APK，`vc105` 和测试版请手动选择。
 
 [<img src="images/obtainium-badge.png" alt="通过 Obtainium 获取 Pixel MiPushFramework" height="48">][obtainium]
 
-此入口适用于采用新命名规则的后续版本。首次从其他签名的框架切换时，请先备份配置并确认迁移方案。
+## 使用与配置
+
+仪表盘用于检查服务连接，记录页用于查看应用是否注册、何时收到消息以及消息如何处理。连接正常不等于每个应用都已接入，接入与排障步骤见 [使用说明](docs/USAGE.md)。
+
+在设置页的「设置配置目录」中选择规则目录。可参考 [上游规则仓库](https://github.com/NihilityT/MiPushConfigurations) 按需选择配置，先查看每份规则的说明，避免同时启用互斥文件。
+
+框架负责消息接收、记录和通知处理，Pixel MiPush 负责需要注入系统或目标应用的增强。两者分别安装和更新，具体版本的模块能力以模块文档及发布说明为准。
+
+遇到问题时，先核对权限、应用注册和配套模块作用域，再通过「设置 → 获取日志」导出记录。提交 [Issue](https://github.com/huaxianyan/PixelMiPushFramework/issues) 前请检查日志中的设备标识、消息内容和服务器信息，参见 [反馈指南](docs/USAGE.md#日志与反馈)。
+
+## 与上游的区别
+
+本项目源自 [NihilityT/MiPushFramework](https://github.com/NihilityT/MiPushFramework)，保留共享推送协议、服务包名和原有事件库结构，独立维护 Android 适配、界面、修复与发布流程。
+
+包名固定为 `com.xiaomi.xmsf`，这是接入应用寻找共享服务的约定。显示名与项目名称可以不同，原理及兼容问题见 [使用与兼容说明](docs/USAGE.md)。
+
+本仓库使用独立版本线、长期签名和更新源。上游的旧版说明、截图及机型反馈不作为本项目当前版本的验收结论，历史来源与贡献者记录见 [致谢](docs/ACKNOWLEDGEMENTS.md)。
+
+## 文档
+
+- [使用与兼容说明](docs/USAGE.md)：版本选择、迁移、权限、通知规则与常见问题。
+- [构建指南](BUILDING.md)：工具链、定向构建和产物校验。
+- [发布约定](docs/RELEASING.md)：版本说明、签名和 Release 附件规则。
+- [Android 17 适配](docs/ANDROID17-MIGRATION.md)：平台适配、页面动效和运行验证边界。
+- [开发记录](docs/STATUS.md)：功能进度、验收证据与未完成事项。
+- [参与贡献](CONTRIBUTION.md)：分支、代码风格和提交方式。
+- [来源与致谢](docs/ACKNOWLEDGEMENTS.md)：上游项目、贡献者与第三方组件说明。
+
+## 许可证
+
+本项目源码沿用 [GNU General Public License v3.0](LICENSE)，保留上游版权及署名。第三方组件与资源的权属、许可不因本项目的维护而改变，具体来源见 [致谢](docs/ACKNOWLEDGEMENTS.md)。
 
 [obtainium]: https://apps.obtainium.imranr.dev/redirect?r=obtainium%3A%2F%2Fapp%2F%257B%2522id%2522%253A%2522com.xiaomi.xmsf%2522%252C%2522url%2522%253A%2522https%253A%2F%2Fgithub.com%2Fhuaxianyan%2FPixelMiPushFramework%2522%252C%2522author%2522%253A%2522huaxianyan%2522%252C%2522name%2522%253A%2522Pixel%2520MiPushFramework%2522%252C%2522additionalSettings%2522%253A%2522%257B%255C%2522apkFilterRegEx%255C%2522%253A%255C%2522%255EPixelMiPushFramework-normal-universal-.%252A%255C%255C%255C%255C.apk%2524%255C%2522%252C%255C%2522includePrereleases%255C%2522%253Afalse%252C%255C%2522versionDetection%255C%2522%253Atrue%252C%255C%2522appName%255C%2522%253A%255C%2522Pixel%2520MiPushFramework%255C%2522%257D%2522%257D
-
-### 常见问题
-
-**为什么包名是 `com.xiaomi.xmsf`，跟应用名对不上？**
-
-接入方的小米推送 SDK 把包名编译进了自己的字节码：SDK 判断「系统是否具备推送能力」的方式，就是查询 `com.xiaomi.xmsf` 这个包是否存在、版本号是否不低于 105。改了包名，所有接入应用都会认为设备没有系统推送，转而走自建通道，框架也就收不到任何东西了。因此 `applicationId` 必须保持原样，能改的只有显示名、图标与 namespace。
-
-**normal 版本与 vc105 版本有什么区别？**
-
-- 主要差异在消息传递方式：推送服务 105 版本使用 `startService`，108 及以上版本使用 `bindService`
-- 优先用 normal 版本，遇到问题再换 105 版本
-- 在 MIUI ROM 上，用 normal 版本的另一个好处是系统重启后应用不会变回官方版本
-- 已知 COS 系统无法通过 bind 方式传递消息，建议 COS 用户选 vc105
-
-**配置文件都有什么作用？我应该用吗？**
-
-配置文件可以修改消息的标题、内容与样式，控制收到消息时忽略、亮屏或自动弹出等。大部分官方配置可以无脑使用；个别配置是否该用，看它的名字和配置里的 `description` 字段。
-
-**是否应该把推送服务安装为系统应用？**
-
-推荐。某些应用在获取应用列表时只能拿到系统应用列表，把它装成系统应用，这些应用才能发现推送服务并完成注册。
-
-**应用用上推送服务后，`com.xiaomi.push.service.XMPushService` 被禁用，正常吗？**
-
-正常。有了系统推送服务之后，相关功能直接委托给系统推送服务处理。
-
-**支持分身（999）应用吗？**
-
-目前没有这个计划，也没有测试过，不接受相关反馈。
-
-## 反馈问题
-
-遇到问题请先翻一遍 [Issues](https://github.com/huaxianyan/PixelMiPushFramework/issues)，看有没有人提过（最常见的是「无法收到推送」）。
-
-没找到答案就单独开一条，并带上这些信息：
-
-- 你的 ROM 是什么，Android 版本是多少
-- 有没有使用框架一类的工具
-- 通过「设置 - 获取日志」导出的日志文件
-
-## 日志
-
-框架会自动记录日志并保存在私有目录，可在「设置 - 高级配置」里清理。
-
-## 参与项目
-
-参见 [Contribution Guideline](CONTRIBUTION.md)。构建与发布流程见 [BUILDING.md](BUILDING.md)，当前主线、历史验收边界和下一步见 [交接记录](docs/STATUS.md)。
-
-## 已知问题
-
-- 部分小众 ROM（如 360OS）下无法正常工作。这类「特殊适配」只要不妨碍推送本身就不会处理，建议更换更好的 ROM
-- 努比亚 ROM 上，第三方接入应用可能不会自动禁用其 `XMPushService`，可尝试将框架设为系统应用
-- 部分通知特性不可用，例如所有通知都会显示为推送框架发出，而不是目标应用
-
-## 与上游的关系
-
-本项目 fork 自 [NihilityT/MiPushFramework](https://github.com/NihilityT/MiPushFramework)，遵循上游的 GPL-3.0 许可。
-
-**从 1.0.0 起独立编号，不再沿用上游的 0.3.x 版本线。** 这个仓库里没有发布过 0.3.x 的正式版本，历史版本请到上游仓库查看。
-
-感谢上游作者与所有贡献者：
-
-- @Rachel030219 提供文件
-- Android Open Source Project, MultiType, greenDao, SetupWizardLibCompat, Condom, MaterialPreference, GreenDaoUpgradeHelper, epic, Log4a, helplib, RxJava/RxAndroid, RxActivityResult, RxPermissions, hiBeaver
-- 酷安 @PzHown @lmnm011223 @苏沐晨风丶（未采纳）提供图标
-
-## 许可
-
-[GNU General Public License v3.0](LICENSE)，遵循上游许可。
