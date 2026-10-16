@@ -1,7 +1,10 @@
-# Contribution guideline
-* 欢迎提交 PR、Issues 帮助这个项目更好。
-* 代码规范: Alibaba Java Coding Guidelines / Google Java 编程规范
-* 尽量丰富注释和文档
-* Git commit message 规范：[Angular](https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#-git-commit-guidelines)
-* 构建（Build）本项目所需的配置文件，参见样例文件 local.properties.example。
-* 请提交 PR 到正在活跃的 `DEV-<日期>` 分支，而不是 master。
+# 参与贡献
+
+欢迎通过 Issue 和 PR 报告问题、提出建议或提交改动。提交问题前请先查看已有讨论，并附上可复现步骤及排除敏感内容后的日志。
+
+- 功能和修复使用独立主题分支，PR 面向 `master`，验收后再由维护者合入。
+- 文档整理与业务改动分开提交，说明改动范围和实际验证结果。
+- Java 代码继续参考 Alibaba Java Coding Guidelines 和 Google Java 编程规范。
+- 提交信息参考 [Angular 提交约定](https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#-git-commit-guidelines)。
+
+工具链、构建命令和定向验证见 [构建指南](BUILDING.md)。签名发布、版本说明和附件检查见 [发布约定](docs/RELEASING.md)。
