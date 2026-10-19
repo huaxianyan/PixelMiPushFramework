@@ -38,13 +38,20 @@
 1. 从 [最新正式版](https://github.com/huaxianyan/PixelMiPushFramework/releases/latest) 下载 `normal` APK。只有接入方明确需要旧服务版本范围时，才选择 `vc105`。
 2. 打开「推送服务」，按向导完成通知、电池优化等授权。
 3. 按需在「设置 → 高级配置」中开启「推送服务保活」，再打开目标应用确认注册并测试一条真实消息。
-4. 需要设备识别或通知增强时，另行安装 [Pixel MiPush](https://github.com/huaxianyan/PixelMiPush)，按模块文档启用并选择作用域。
 
 ### 通过 Obtainium 更新
 
 先安装 [Obtainium](https://obtainium.imranr.dev/)，再点击下方入口导入更新源。默认跟踪正式版的 `normal` APK，`vc105` 和测试版请手动选择。
 
 [<img src="images/obtainium-badge.png" alt="通过 Obtainium 获取 Pixel MiPushFramework" height="48">][obtainium]
+
+### 导入配套模块
+
+需要设备识别或通知增强时，可直接从本页导入 [Pixel MiPush](https://github.com/huaxianyan/PixelMiPush) 模块更新源：
+
+[<img src="images/obtainium-badge.png" alt="通过 Obtainium 获取 Pixel MiPush 模块" height="48">][obtainium-module]
+
+导入后在 LSPosed 中启用模块并选择作用域，操作与限制见 [模块使用说明](https://github.com/huaxianyan/PixelMiPush/blob/master/docs/USAGE.md)。若设备已有旧包模块，先按模块文档完成迁移再导入。
 
 ## 使用与配置
 
@@ -84,3 +91,5 @@
 页面层级动效参考了 [Pixel Text](https://github.com/Pixel-Tailor-CN/PixelText) 的开源导航实现，感谢原作者提供的实现与思路。
 
 [obtainium]: https://apps.obtainium.imranr.dev/redirect?r=obtainium%3A%2F%2Fapp%2F%257B%2522id%2522%253A%2522com.xiaomi.xmsf%2522%252C%2522url%2522%253A%2522https%253A%2F%2Fgithub.com%2Fhuaxianyan%2FPixelMiPushFramework%2522%252C%2522author%2522%253A%2522huaxianyan%2522%252C%2522name%2522%253A%2522Pixel%2520MiPushFramework%2522%252C%2522additionalSettings%2522%253A%2522%257B%255C%2522apkFilterRegEx%255C%2522%253A%255C%2522%255EPixelMiPushFramework-normal-universal-.%252A%255C%255C%255C%255C.apk%2524%255C%2522%252C%255C%2522includePrereleases%255C%2522%253Afalse%252C%255C%2522versionDetection%255C%2522%253Atrue%252C%255C%2522appName%255C%2522%253A%255C%2522Pixel%2520MiPushFramework%255C%2522%257D%2522%257D
+
+[obtainium-module]: https://apps.obtainium.imranr.dev/redirect?r=obtainium%3A%2F%2Fapp%2F%257B%2522id%2522%253A%2522com.neko7ina.pixelmipush%2522%252C%2522url%2522%253A%2522https%253A%2F%2Fgithub.com%2Fhuaxianyan%2FPixelMiPush%2522%252C%2522author%2522%253A%2522huaxianyan%2522%252C%2522name%2522%253A%2522Pixel%2520MiPush%2522%252C%2522additionalSettings%2522%253A%2522%257B%255C%2522apkFilterRegEx%255C%2522%253A%255C%2522%255EPixelMiPush-universal-.%252A%255C%255C%255C%255C.apk%2524%255C%2522%252C%255C%2522includePrereleases%255C%2522%253Afalse%252C%255C%2522versionDetection%255C%2522%253Atrue%252C%255C%2522appName%255C%2522%253A%255C%2522Pixel%2520MiPush%255C%2522%257D%2522%257D
