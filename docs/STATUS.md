@@ -162,7 +162,7 @@
 ## STATUS-052：框架 README 增加模块导入入口
 
 - 用户要求在框架 README 页面内直接提供配套模块的 Obtainium 导入按钮，参照其维护的 SyncClipboard Kotlin 项目门面。本轮为纯文档改动，不改业务代码或版本号
-- 模块徽章复用框架 images 目录的 obtainium-badge.png，Obtainium 深链指向模块仓库 huaxianyan/PixelMiPush，筛选正式包名 PixelMiPush-universal-*，与框架主入口的筛选彼此独立
+- 模块徽章复用框架 images 目录的 obtainium-badge.png，Obtainium 深链指向模块仓库 huaxianyan/PixelMiPush，筛选正式版附件 `PixelMiPush-<版本>.apk`，与框架主入口的筛选彼此独立
 - 快速开始改为三级结构：下载安装、通过 Obtainium 更新、导入配套模块。模块段落说明导入后需在 LSPosed 中启用并选择作用域，旧包用户先按模块文档迁移再导入，链接指向模块仓库 master 的 docs/USAGE.md
 - 文档完成中文排版、句长、AI 腔与本地链接检查。两个 Obtainium 深链经脚本反向解码，确认包名、仓库地址和角标控制条件符合预期
 - 公开内容不引用模块的历史版本标签或内部测试记录。本轮不推送或发布，两个项目的正式版本与附件保持不变

@@ -62,14 +62,17 @@ def prepare(args):
         if 'application-debuggable' in badging:
             raise ValueError('Debuggable APK cannot be published')
         native_abis = universal_abis(apk)
-        abi = 'universal'
         signer = output(apk_tool(args.tools, 'apksigner'), 'verify', '--verbose', '--print-certs', str(apk))
         cert = re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F]+)', signer)
         if not cert or cert.group(1).lower() != args.certificate.lower():
             raise ValueError('Unexpected signing certificate')
         if 'Verified using v2 scheme (APK Signature Scheme v2): true' not in signer:
             raise ValueError('APK requires a verified v2 signature')
-        name = f'{args.project}-{variant}-{abi}-{args.tag[1:]}.apk' if variant != 'default' else f'{args.project}-{abi}-{args.tag[1:]}.apk'
+        parts = [args.project]
+        if variant != 'default':
+            parts.append(variant)
+        parts.append(args.tag[1:])
+        name = '-'.join(parts) + '.apk'
         if name in names:
             raise ValueError('Duplicate release asset name')
         names.add(name)
@@ -81,7 +84,7 @@ def prepare(args):
         if not minimum or not target:
             raise ValueError('Cannot read min / target SDK from APK')
         rows.extend([f'| {variant} 包名 / 版本号 | `{package.group(1)} / {package.group(2)}` |',
-                     f'| {variant} 架构 / min / target SDK | `{abi} ({", ".join(native_abis)}) / {minimum.group(1)} / {target.group(1)}` |',
+                     f'| {variant} 架构 / min / target SDK | `{", ".join(native_abis)} / {minimum.group(1)} / {target.group(1)}` |',
                      f'| {variant} 签名证书 SHA-256 | `{cert.group(1).lower()}` |',
                      f'| {name} SHA-256 | `{digest}` |'])
         metadata.append({'asset': name, 'package': package.group(1), 'version_code': int(package.group(2)),
