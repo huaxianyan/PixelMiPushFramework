@@ -12,6 +12,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.service.notification.StatusBarNotification;
@@ -41,6 +42,9 @@ import top.trumeet.common.utils.CustomConfiguration;
 import top.trumeet.common.utils.ImgUtils;
 import top.trumeet.mipushframework.main.AdvancedSettingsPage;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+
 /**
  * @author Trumeet
  * @date 2018/1/25
@@ -48,6 +52,8 @@ import top.trumeet.mipushframework.main.AdvancedSettingsPage;
 
 public class NotificationController {
     private static final Logger logger = XLog.tag("NotificationController").build();
+
+    private static volatile ConversationIconStore conversationIconStore;
 
     private static final String NOTIFICATION_LARGE_ICON = "mipush_notification";
     private static final String NOTIFICATION_SMALL_ICON = "mipush_small_notification";
@@ -178,12 +184,62 @@ public class NotificationController {
 
     @Nullable
     public static Bitmap getLargeIcon(Context context, PushMetaInfo metaInfo, String iconUri) {
+        if (iconUri == null) {
+            return null;
+        }
         Bitmap largeIcon = Global.IconCache().getBitmap(context, iconUri,
                 (context1, iconUri1) -> getBitmapFromUri(context1, iconUri1, 200 * KiB));
         if (largeIcon != null) {
-            largeIcon = roundLargeIconIfConfigured(metaInfo, largeIcon);
+            storeIcon(context, iconUri, largeIcon);
+        } else {
+            largeIcon = readStoredIcon(context, iconUri);
+            if (largeIcon == null) {
+                logger.w("Avatar unavailable at " + hostOf(iconUri) + ", no local copy to reuse");
+                return null;
+            }
+            logger.w("Avatar download failed at " + hostOf(iconUri) + ", reused the last downloaded copy");
         }
-        return largeIcon;
+        return roundLargeIconIfConfigured(metaInfo, largeIcon);
+    }
+
+    private static void storeIcon(Context context, String iconUri, Bitmap largeIcon) {
+        ByteArrayOutputStream png = new ByteArrayOutputStream();
+        if (!largeIcon.compress(Bitmap.CompressFormat.PNG, 100, png)) {
+            return;
+        }
+        iconStore(context).write(iconUri, png.toByteArray());
+    }
+
+    @Nullable
+    private static Bitmap readStoredIcon(Context context, String iconUri) {
+        byte[] stored = iconStore(context).read(iconUri);
+        if (stored == null) {
+            return null;
+        }
+        return BitmapFactory.decodeByteArray(stored, 0, stored.length);
+    }
+
+    private static ConversationIconStore iconStore(Context context) {
+        ConversationIconStore store = conversationIconStore;
+        if (store == null) {
+            synchronized (NotificationController.class) {
+                store = conversationIconStore;
+                if (store == null) {
+                    store = new ConversationIconStore(new File(context.getCacheDir(), "conversation-icons"));
+                    conversationIconStore = store;
+                }
+            }
+        }
+        return store;
+    }
+
+    private static String hostOf(String iconUri) {
+        try {
+            String host = Uri.parse(iconUri).getHost();
+            return host != null ? host : "unknown host";
+        } catch (Exception e) {
+            return "unknown host";
+        }
     }
 
     public static Bitmap roundLargeIconIfConfigured(PushMetaInfo metaInfo, Bitmap largeIcon) {

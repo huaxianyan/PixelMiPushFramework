@@ -65,10 +65,20 @@ public class MyNotificationIconHelper {
                     }
                 }
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable throwable) {
+            MyLog.w("Avatar download failed at " + hostOf(urlStr) + ": " + throwable);
         }
         IOUtils.closeQuietly(isForBitmapSize);
         return result;
+    }
+
+    private static String hostOf(String urlStr) {
+        try {
+            String host = Uri.parse(urlStr).getHost();
+            return host != null ? host : "unknown host";
+        } catch (Throwable throwable) {
+            return "unknown host";
+        }
     }
 
     /* loaded from: classes.dex */
