@@ -25,6 +25,9 @@ public class MyNotificationIconHelper {
     private static final int READ_UNIT = 1024;
     private static final int STANDARD_DENSITY = 160;
     private static final int STANDARD_ICON_SIZE = 48;
+    private static final int SERVER_ERROR_STATUS = 500;
+    private static final int SERVER_ERROR_ATTEMPTS = 3;
+    private static final long RETRY_DELAY_MS = 400;
 
     /* loaded from: classes.dex */
     public static class GetIconResult {
@@ -92,77 +95,82 @@ public class MyNotificationIconHelper {
         }
     }
 
+    /**
+     * 头像 CDN 偶尔返回 502 或 503，稍后重试通常就能拿到图片。只对服务端错误重试，
+     * 连接失败和 4xx 直接放弃，避免把通知构建拖长。
+     */
     private static GetDataResult getDataFromUrl(String urlStr, int maxDownloadBytes) {
-        GetDataResult getDataResult;
-        HttpURLConnection conn = null;
-        try {
+        for (int attempt = 1; ; attempt++) {
+            Download download = downloadOnce(urlStr, maxDownloadBytes);
+            if (download.result != null || download.statusCode < SERVER_ERROR_STATUS
+                    || attempt >= SERVER_ERROR_ATTEMPTS) {
+                return download.result;
+            }
+            MyLog.w("HTTP " + download.statusCode + " from " + hostOf(urlStr) + ", retrying");
             try {
-                URL url = new URL(urlStr);
-                HttpURLConnection conn2 = (HttpURLConnection) url.openConnection();
-                conn2.setConnectTimeout(CONNECT_TIMEOUT);
-                conn2.setReadTimeout(READ_TIMEOUT);
-                conn2.connect();
-                int contentLen = conn2.getContentLength();
-                if (contentLen > maxDownloadBytes) {
-                    MyLog.w("Bitmap size is too big, max size is " + maxDownloadBytes + "  contentLen size is " + contentLen + " from url " + urlStr);
-                    IOUtils.closeQuietly((InputStream) null);
-                    if (conn2 != null) {
-                        conn2.disconnect();
-                    }
-                    return null;
-                }
-                int responseCode = conn2.getResponseCode();
-                if (responseCode != 200) {
-                    MyLog.w("Invalid Http Response Code " + responseCode + " received");
-                    IOUtils.closeQuietly((InputStream) null);
-                    if (conn2 != null) {
-                        conn2.disconnect();
-                    }
-                    return null;
-                }
-                InputStream inputStream = conn2.getInputStream();
-                ByteArrayOutputStream tempOutStream = new ByteArrayOutputStream();
-                int availableSpace = maxDownloadBytes;
-                byte[] dataUnit = new byte[READ_UNIT];
-                while (availableSpace > 0) {
-                    int readCount = inputStream.read(dataUnit, 0, READ_UNIT);
-                    if (readCount == -1) {
-                        break;
-                    }
-                    availableSpace -= readCount;
-                    tempOutStream.write(dataUnit, 0, readCount);
-                }
-                if (availableSpace <= 0) {
-                    MyLog.w("length " + maxDownloadBytes + " exhausted.");
-                    getDataResult = new GetDataResult(null, maxDownloadBytes);
-                    IOUtils.closeQuietly(inputStream);
-                    if (conn2 == null) {
-                        return getDataResult;
-                    }
-                } else {
-                    byte[] data = tempOutStream.toByteArray();
-                    getDataResult = new GetDataResult(data, data.length);
-                    IOUtils.closeQuietly(inputStream);
-                    if (conn2 == null) {
-                        return getDataResult;
-                    }
-                }
-                conn2.disconnect();
-                return getDataResult;
-            } catch (IOException e) {
-                MyLog.e(e);
-                IOUtils.closeQuietly((InputStream) null);
-                if (0 != 0) {
-                    conn.disconnect();
-                }
+                Thread.sleep(RETRY_DELAY_MS * attempt);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
                 return null;
             }
-        } catch (Throwable th) {
-            IOUtils.closeQuietly((InputStream) null);
-            if (0 != 0) {
-                conn.disconnect();
+        }
+    }
+
+    private static Download downloadOnce(String urlStr, int maxDownloadBytes) {
+        HttpURLConnection connection = null;
+        InputStream inputStream = null;
+        try {
+            URL url = new URL(urlStr);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(CONNECT_TIMEOUT);
+            connection.setReadTimeout(READ_TIMEOUT);
+            connection.connect();
+            int contentLen = connection.getContentLength();
+            if (contentLen > maxDownloadBytes) {
+                MyLog.w("Bitmap size is too big, max size is " + maxDownloadBytes + "  contentLen size is " + contentLen + " from url " + urlStr);
+                return new Download(null, 200);
             }
-            throw th;
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                MyLog.w("Invalid Http Response Code " + responseCode + " received");
+                return new Download(null, responseCode);
+            }
+            inputStream = connection.getInputStream();
+            ByteArrayOutputStream tempOutStream = new ByteArrayOutputStream();
+            int availableSpace = maxDownloadBytes;
+            byte[] dataUnit = new byte[READ_UNIT];
+            while (availableSpace > 0) {
+                int readCount = inputStream.read(dataUnit, 0, READ_UNIT);
+                if (readCount == -1) {
+                    break;
+                }
+                availableSpace -= readCount;
+                tempOutStream.write(dataUnit, 0, readCount);
+            }
+            if (availableSpace <= 0) {
+                MyLog.w("length " + maxDownloadBytes + " exhausted.");
+                return new Download(new GetDataResult(null, maxDownloadBytes), 200);
+            }
+            byte[] data = tempOutStream.toByteArray();
+            return new Download(new GetDataResult(data, data.length), 200);
+        } catch (IOException e) {
+            MyLog.e(e);
+            return new Download(null, 0);
+        } finally {
+            IOUtils.closeQuietly(inputStream);
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private static final class Download {
+        final GetDataResult result;
+        final int statusCode;
+
+        Download(GetDataResult result, int statusCode) {
+            this.result = result;
+            this.statusCode = statusCode;
         }
     }
 
