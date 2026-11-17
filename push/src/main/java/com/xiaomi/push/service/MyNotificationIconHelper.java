@@ -106,7 +106,7 @@ public class MyNotificationIconHelper {
                     || attempt >= SERVER_ERROR_ATTEMPTS) {
                 return download.result;
             }
-            MyLog.w("HTTP " + download.statusCode + " from " + hostOf(urlStr) + ", retrying");
+            MyLog.w("Avatar request returned HTTP " + download.statusCode + " for " + hostOf(urlStr) + ", retrying");
             try {
                 Thread.sleep(RETRY_DELAY_MS * attempt);
             } catch (InterruptedException interrupted) {
